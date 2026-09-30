@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import Decimal from 'break_eternity.js';
 import type { GameState } from './types';
+import type { Faction } from '../data/chapters';
 
 type SerializedDecimal = {
   sign?: number;
@@ -8,19 +9,10 @@ type SerializedDecimal = {
   layer?: number;
 };
 
-const decimalFromComponents = (
-  sign: number,
-  layer: number,
-  mag: number,
-): Decimal => {
+const decimalFromComponents = (sign: number, layer: number, mag: number): Decimal => {
   const DecimalConstructor = Decimal as unknown as {
-    fromComponents: (
-      sign: number,
-      layer: number,
-      mag: number,
-    ) => Decimal;
+    fromComponents: (sign: number, layer: number, mag: number) => Decimal;
   };
-
   return DecimalConstructor.fromComponents(sign, layer, mag);
 };
 
@@ -38,9 +30,7 @@ const DecimalSchema = z
     if (typeof value === 'string' || typeof value === 'number') {
       return new Decimal(value);
     }
-
     const serialized = value as SerializedDecimal;
-
     return decimalFromComponents(
       serialized.sign ?? 0,
       serialized.layer ?? 0,
@@ -62,6 +52,8 @@ const FactionsSchema = z.object({
   infamy: DecimalSchema,
 });
 
+const FactionEnumSchema = z.enum(['marine', 'pirate', 'revolutionary']);
+
 export const SaveSchema = z.object({
   version: z.number(),
   state: z.object({
@@ -73,6 +65,9 @@ export const SaveSchema = z.object({
     chapterProgress: z.number(),
     currentArc: z.number(),
     currentChapter: z.number(),
+    doubleAgentUnlocked: z.boolean(),
+    doubleAgentActive: z.boolean(),
+    lockedFactions: z.tuple([FactionEnumSchema, FactionEnumSchema]).nullable(),
   }),
 });
 
@@ -98,51 +93,34 @@ export const createInitialState = (): GameState => ({
   chapterProgress: 0,
   currentArc: 1,
   currentChapter: 1,
+  doubleAgentUnlocked: false,
+  doubleAgentActive: false,
+  lockedFactions: null,
 });
 
-export const saveGame = (
-  state: GameState,
-  slot: string = SAVE_KEY,
-): void => {
-  const payload = {
-    version: 1,
-    state,
-  };
-
+export const saveGame = (state: GameState, slot: string = SAVE_KEY): void => {
+  const payload = { version: 1, state };
   localStorage.setItem(slot, JSON.stringify(payload));
 };
 
 export const loadGame = (): GameState => {
   const raw = localStorage.getItem(SAVE_KEY);
-
-  if (!raw) {
-    return createInitialState();
-  }
+  if (!raw) return createInitialState();
 
   try {
     const parsed: unknown = JSON.parse(raw);
     const validated = SaveSchema.safeParse(parsed);
 
-    if (validated.success) {
-      return validated.data.state as GameState;
-    }
+    if (validated.success) return validated.data.state as GameState;
 
-    localStorage.setItem(
-      `${SAVE_KEY}_quarantine_${Date.now()}`,
-      raw,
-    );
-
+    localStorage.setItem(`\({SAVE_KEY}_quarantine_\){Date.now()}`, raw);
     const backup = localStorage.getItem(BACKUP_KEY);
 
     if (backup) {
       const parsedBackup: unknown = JSON.parse(backup);
       const validatedBackup = SaveSchema.safeParse(parsedBackup);
-
-      if (validatedBackup.success) {
-        return validatedBackup.data.state as GameState;
-      }
+      if (validatedBackup.success) return validatedBackup.data.state as GameState;
     }
-
     return createInitialState();
   } catch {
     return createInitialState();

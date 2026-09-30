@@ -1,4 +1,5 @@
 import Decimal from 'break_eternity.js';
+import type { Faction } from '../data/chapters';
 
 export interface CoreStats {
   str: Decimal;
@@ -23,4 +24,14 @@ export interface GameState {
   chapterProgress: number;
   currentArc: number;
   currentChapter: number;
+  doubleAgentUnlocked: boolean;
+  doubleAgentActive: boolean;
+  lockedFactions: [Faction, Faction] | null;
+  // Prestige fields
+  era: number;
+  endings: string[];
+  heirlooms: string[];
+  hakiMultiplier: Decimal;
+  isDead: boolean;
+  lastEnding?: string;
 }

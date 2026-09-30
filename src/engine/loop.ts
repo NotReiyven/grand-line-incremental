@@ -1,10 +1,10 @@
-import { GameState } from './types';
+import type { GameState } from './types';
 import Decimal from 'break_eternity.js';
 import { saveGame } from './save';
 
 export const TICK_RATE = 10;
 export const MS_PER_TICK = 1000 / TICK_RATE;
-export const MAX_OFFLINE_SECONDS = 1209600; // 14 days
+export const MAX_OFFLINE_SECONDS = 1209600; 
 
 let accumulator = 0;
 let lastTime = performance.now();
@@ -19,25 +19,28 @@ let currentState: GameState;
 export const initEngine = (initialState: GameState, syncCallback: SyncCallback) => {
   currentState = initialState;
   onSync = syncCallback;
-  
   const now = Date.now();
   const offlineSeconds = Math.min((now - currentState.lastTick) / 1000, MAX_OFFLINE_SECONDS);
-  
-  if (offlineSeconds > 0) {
-    catchUpOffline(offlineSeconds);
-  }
-  
+  if (offlineSeconds > 0) catchUpOffline(offlineSeconds);
   currentState.lastTick = now;
   lastTime = performance.now();
 };
 
 const catchUpOffline = (seconds: number) => {
-  const staminaGain = new Decimal(seconds);
-  currentState.stamina = Decimal.min(currentState.stamina.plus(staminaGain), currentState.maxStamina);
+  if (currentState.isDead) return;
+  currentState.stamina = Decimal.min(currentState.stamina.plus(seconds), currentState.maxStamina);
   
-  // Faction decay: 1 real-time hour = 1 point decay toward 0
+  const hakiMult = currentState.hakiMultiplier.plus(1);
+  const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
+  const passiveGain = new Decimal(seconds * 0.01 * paranoiaMult).times(hakiMult);
+  
+  currentState.stats.str = currentState.stats.str.plus(passiveGain);
+  currentState.stats.agi = currentState.stats.agi.plus(passiveGain);
+  currentState.stats.end = currentState.stats.end.plus(passiveGain);
+  currentState.stats.wil = currentState.stats.wil.plus(passiveGain);
+
   const decayAmount = Math.floor(seconds / 3600);
-  if (decayAmount > 0) {
+  if (decayAmount > 0 && !currentState.doubleAgentActive) {
     currentState.factions.marine = applyDecay(currentState.factions.marine, decayAmount);
     currentState.factions.pirate = applyDecay(currentState.factions.pirate, decayAmount);
     currentState.factions.revolutionary = applyDecay(currentState.factions.revolutionary, decayAmount);
@@ -51,12 +54,21 @@ const applyDecay = (val: number, decay: number): number => {
 };
 
 const tick = () => {
+  if (currentState.isDead) return;
   currentState.stamina = Decimal.min(currentState.stamina.plus(0.1), currentState.maxStamina);
+  
+  const hakiMult = currentState.hakiMultiplier.plus(1);
+  const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
+  const passiveGain = new Decimal(0.01 * paranoiaMult).times(hakiMult);
+  
+  currentState.stats.str = currentState.stats.str.plus(passiveGain);
+  currentState.stats.agi = currentState.stats.agi.plus(passiveGain);
+  currentState.stats.end = currentState.stats.end.plus(passiveGain);
+  currentState.stats.wil = currentState.stats.wil.plus(passiveGain);
 };
 
 const update = (time: number) => {
   if (!running) return;
-  
   const deltaTime = time - lastTime;
   lastTime = time;
   accumulator += deltaTime;
@@ -72,7 +84,6 @@ const update = (time: number) => {
     currentState.lastTick = Date.now();
     onSync(currentState);
   }
-  
   animationFrameId = requestAnimationFrame(update);
 };
 
@@ -81,7 +92,6 @@ export const startEngine = () => {
   running = true;
   lastTime = performance.now();
   animationFrameId = requestAnimationFrame(update);
-  
   saveIntervalId = window.setInterval(() => {
     saveGame(currentState, 'grand_line_v1');
     saveGame(currentState, 'grand_line_backup');
@@ -95,6 +105,10 @@ export const stopEngine = () => {
 };
 
 export const dispatchCommand = (action: (state: GameState) => void) => {
+  if (currentState.isDead && action.name !== 'inheritWillAction') return;
   action(currentState);
+  if (currentState.factions.infamy.gte(100000) && !currentState.doubleAgentUnlocked) {
+    currentState.doubleAgentUnlocked = true;
+  }
   if (onSync) onSync(currentState);
 };

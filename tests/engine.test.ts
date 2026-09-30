@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import Decimal from 'break_eternity.js';
 import { initEngine, dispatchCommand } from '../src/engine/loop';
 import { createInitialState } from '../src/engine/save';
-import { GameState } from '../src/engine/types';
+import type { GameState } from '../src/engine/types';
 
 describe('Core Engine Simulation', () => {
   let state: GameState;
