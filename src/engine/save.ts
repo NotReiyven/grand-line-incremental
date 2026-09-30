@@ -1,17 +1,52 @@
 import { z } from 'zod';
 import Decimal from 'break_eternity.js';
-import { GameState } from './types';
+import type { GameState } from './types';
 
-// break_eternity parses strings, numbers, and its own object representations natively.
-const DecimalSchema = z.union([
-  z.string(), 
-  z.number(), 
-  z.object({
-    sign: z.number().optional(),
-    mag: z.number().optional(),
-    layer: z.number().optional()
-  })
-]).transform(val => new Decimal(val));
+type SerializedDecimal = {
+  sign?: number;
+  mag?: number;
+  layer?: number;
+};
+
+const decimalFromComponents = (
+  sign: number,
+  layer: number,
+  mag: number,
+): Decimal => {
+  const DecimalConstructor = Decimal as unknown as {
+    fromComponents: (
+      sign: number,
+      layer: number,
+      mag: number,
+    ) => Decimal;
+  };
+
+  return DecimalConstructor.fromComponents(sign, layer, mag);
+};
+
+const DecimalSchema = z
+  .union([
+    z.string(),
+    z.number(),
+    z.object({
+      sign: z.number().optional(),
+      mag: z.number().optional(),
+      layer: z.number().optional(),
+    }),
+  ])
+  .transform((value): Decimal => {
+    if (typeof value === 'string' || typeof value === 'number') {
+      return new Decimal(value);
+    }
+
+    const serialized = value as SerializedDecimal;
+
+    return decimalFromComponents(
+      serialized.sign ?? 0,
+      serialized.layer ?? 0,
+      serialized.mag ?? 0,
+    );
+  });
 
 const CoreStatsSchema = z.object({
   str: DecimalSchema,
@@ -38,7 +73,7 @@ export const SaveSchema = z.object({
     chapterProgress: z.number(),
     currentArc: z.number(),
     currentChapter: z.number(),
-  })
+  }),
 });
 
 const SAVE_KEY = 'grand_line_v1';
@@ -65,37 +100,51 @@ export const createInitialState = (): GameState => ({
   currentChapter: 1,
 });
 
-export const saveGame = (state: GameState, slot: string = SAVE_KEY) => {
+export const saveGame = (
+  state: GameState,
+  slot: string = SAVE_KEY,
+): void => {
   const payload = {
     version: 1,
-    state
+    state,
   };
+
   localStorage.setItem(slot, JSON.stringify(payload));
 };
 
 export const loadGame = (): GameState => {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return createInitialState();
+
+  if (!raw) {
+    return createInitialState();
+  }
 
   try {
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     const validated = SaveSchema.safeParse(parsed);
-    
+
     if (validated.success) {
       return validated.data.state as GameState;
     }
-    
-    localStorage.setItem(`\({SAVE_KEY}_quarantine_\){Date.now()}`, raw);
-    
+
+    localStorage.setItem(
+      `${SAVE_KEY}_quarantine_${Date.now()}`,
+      raw,
+    );
+
     const backup = localStorage.getItem(BACKUP_KEY);
+
     if (backup) {
-       const parsedBackup = JSON.parse(backup);
-       const validatedBackup = SaveSchema.safeParse(parsedBackup);
-       if (validatedBackup.success) return validatedBackup.data.state as GameState;
+      const parsedBackup: unknown = JSON.parse(backup);
+      const validatedBackup = SaveSchema.safeParse(parsedBackup);
+
+      if (validatedBackup.success) {
+        return validatedBackup.data.state as GameState;
+      }
     }
-    
+
     return createInitialState();
-  } catch (e) {
+  } catch {
     return createInitialState();
   }
 };

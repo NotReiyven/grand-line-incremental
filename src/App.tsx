@@ -3,6 +3,7 @@ import { useGameStore } from './store/gameStore';
 import { useSettingsStore } from './store/settingsStore';
 import { formatDecimal } from './utils/math';
 import { chapters } from './data/chapters';
+import type { Faction } from './data/chapters';
 import { dispatchCommand } from './engine/loop';
 
 function App() {
@@ -65,9 +66,9 @@ function StoryTab() {
         return;
       }
 
-      chapter.choice.factionDeltas.forEach((d) => {
-        const faction = d.faction as keyof typeof state.factions;
-        state.factions[faction] += d.delta;
+      chapter.choice.factionDeltas.forEach((delta) => {
+        const faction: Faction = delta.faction;
+        state.factions[faction] += delta.delta;
       });
 
       state.chapterProgress = 1;
