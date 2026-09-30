@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import Decimal from 'break_eternity.js';
-
 import type { GameState } from '../engine/types';
 import {
   createInitialState,
@@ -14,6 +13,7 @@ import {
 } from '../engine/prestige';
 import {
   chapters,
+  type Faction,
 } from '../data/chapters';
 import {
   crewList,
@@ -21,9 +21,6 @@ import {
 import {
   expeditions,
 } from '../data/expeditions';
-import {
-  skills,
-} from '../data/skills';
 import {
   fruits,
 } from '../data/fruits';
@@ -33,40 +30,31 @@ import {
 import {
   updateProgression,
 } from '../engine/progression';
-
 interface GameStore extends GameState {
   sync: (
     state: GameState,
   ) => void;
-
   train: (
     stat: keyof GameState['stats'],
   ) => void;
-
   makeChoice: (
     choiceId: string,
   ) => void;
-
   confirmInheritWill: () => void;
-
   startExpedition: (
     expeditionId: string,
     crewId: string,
   ) => void;
-
   claimExpedition: (
     expeditionId: string,
   ) => void;
-
   eatFruit: (
     fruitId: string,
   ) => void;
-
   challengeBoss: (
     bossId: string,
   ) => void;
 }
-
 const clampReputation = (
   value: number,
 ): number =>
@@ -74,14 +62,12 @@ const clampReputation = (
     -100,
     Math.min(100, value),
   );
-
 const getFruitMultiplier = (
   state: GameState,
 ): number => {
   if (!state.devilFruit) {
     return 1;
   }
-
   return (
     fruits.find(
       (fruit) =>
@@ -90,110 +76,77 @@ const getFruitMultiplier = (
     )?.multiplier ?? 1
   );
 };
-
 const snapshotState = (
   state: GameState,
 ): GameState => ({
   ...state,
-
   stats: {
     ...state.stats,
   },
-
   factions: {
     ...state.factions,
   },
-
   lockedFactions:
     state.lockedFactions
       ? ([
           ...state.lockedFactions,
-        ] as [
-          GameState['lockedFactions'] extends [
-            infer A,
-            infer B,
-          ]
-            ? A
-            : never,
-          GameState['lockedFactions'] extends [
-            infer A,
-            infer B,
-          ]
-            ? B
-            : never,
-        ])
+        ] as [Faction, Faction])
       : null,
-
   doubleAgentBackup:
     state.doubleAgentBackup
       ? {
           ...state.doubleAgentBackup,
         }
       : null,
-
   endings: [
     ...state.endings,
   ],
-
   heirlooms: [
     ...state.heirlooms,
   ],
-
   unlockedCrew: [
     ...state.unlockedCrew,
   ],
-
   activeExpeditions:
     state.activeExpeditions.map(
       (expedition) => ({
         ...expedition,
       }),
     ),
-
   inventory: {
     ...state.inventory,
   },
-
   unlockedSkills: [
     ...state.unlockedSkills,
   ],
-
   haki: {
     ...state.haki,
   },
-
   worldFruits: [
     ...state.worldFruits,
   ],
-
   lockedFruits: [
     ...state.lockedFruits,
   ],
-
   highestBossDamage: {
     ...state.highestBossDamage,
   },
-
   defeatedBosses: [
     ...state.defeatedBosses,
   ],
 });
-
 export const useGameStore =
   create<GameStore>()(
     (set) => ({
       ...createInitialState(),
-
       sync: (
         state: GameState,
       ) => {
         updateProgression(state);
-
         set(
           snapshotState(state),
         );
       },
-
       train: (
         stat: keyof GameState['stats'],
       ) => {
@@ -206,21 +159,17 @@ export const useGameStore =
                 'Not enough stamina. Keep moving and it will recover.';
               return;
             }
-
             state.stamina =
               state.stamina.minus(
                 10,
               );
-
             let crewMultiplier = 0;
-
             for (const crewId of state.unlockedCrew) {
               const crew =
                 crewList.find(
                   (member) =>
                     member.id === crewId,
                 );
-
               if (
                 crew &&
                 crew.passiveMultiplier
@@ -231,17 +180,14 @@ export const useGameStore =
                     .value;
               }
             }
-
             const fruitMultiplier =
               getFruitMultiplier(
                 state,
               );
-
             const hakiMultiplier =
               state.hakiMultiplier.plus(
                 1,
               );
-
             const finalGain =
               new Decimal(1)
                 .times(
@@ -254,19 +200,16 @@ export const useGameStore =
                 .times(
                   fruitMultiplier,
                 );
-
             state.stats[stat] =
               state.stats[stat].plus(
                 finalGain,
               );
-
             state.lastEvent = `Training complete. +${finalGain.toFixed(
               2,
             )} ${stat.toUpperCase()}.`;
           },
         );
       },
-
       makeChoice: (
         choiceId: string,
       ) => {
@@ -278,28 +221,23 @@ export const useGameStore =
                   entry.id ===
                   state.currentChapter,
               );
-
             if (!chapter) {
               return;
             }
-
             if (
               state.chapterProgress !==
               0
             ) {
               return;
             }
-
             const choice =
               chapter.choices.find(
                 (entry) =>
                   entry.id === choiceId,
               );
-
             if (!choice) {
               return;
             }
-
             if (
               choice.requirement &&
               state.stats[
@@ -314,11 +252,9 @@ export const useGameStore =
                 `You need ${choice.requirement.value} ${choice.requirement.stat.toUpperCase()} for that choice.`;
               return;
             }
-
             for (const delta of choice.factionDeltas) {
               const faction =
                 delta.faction;
-
               if (
                 !state.doubleAgentActive ||
                 !state.lockedFactions?.includes(
@@ -336,7 +272,6 @@ export const useGameStore =
                   );
               }
             }
-
             if (
               choice.infamyDelta !==
               undefined
@@ -346,7 +281,6 @@ export const useGameStore =
                   choice.infamyDelta,
                 );
             }
-
             if (
               choice.crewUnlock &&
               !state.unlockedCrew.includes(
@@ -357,14 +291,12 @@ export const useGameStore =
                 choice.crewUnlock,
               );
             }
-
             if (choice.powerCheck) {
               const statValue =
                 state.stats[
                   choice.powerCheck
                     .stat
                 ];
-
               if (
                 statValue.gte(
                   choice.powerCheck
@@ -387,7 +319,6 @@ export const useGameStore =
                   state.currentChapter =
                     choice.powerCheck
                       .successChapterId;
-
                   const nextChapter =
                     chapters.find(
                       (entry) =>
@@ -396,12 +327,10 @@ export const useGameStore =
                           .powerCheck
                           ?.successChapterId,
                     );
-
                   if (nextChapter) {
                     state.currentArc =
                       nextChapter.arc;
                   }
-
                   state.chapterProgress = 0;
                 }
               } else if (
@@ -414,15 +343,12 @@ export const useGameStore =
                     .failEndingId,
                 );
               }
-
               if (!state.isDead) {
                 state.lastEvent =
                   `Check passed. ${choice.text.replace(/\s*\(Check:.*\)$/i, '')}`;
               }
-
               return;
             }
-
             if (choice.endingId) {
               triggerEnding(
                 state,
@@ -430,38 +356,31 @@ export const useGameStore =
               );
               return;
             }
-
             if (
               choice.nextChapterId
             ) {
               state.currentChapter =
                 choice.nextChapterId;
-
               const nextChapter =
                 chapters.find(
                   (entry) =>
                     entry.id ===
                     choice.nextChapterId,
                 );
-
               if (nextChapter) {
                 state.currentArc =
                   nextChapter.arc;
-
                 state.lastEvent = `The voyage continues into ${nextChapter.title}.`;
               }
-
               state.chapterProgress = 0;
               return;
             }
-
             state.chapterProgress = 1;
             state.lastEvent =
               'The decision has been made.';
           },
         );
       },
-
       confirmInheritWill: () => {
         dispatchCommand(
           (state) => {
@@ -470,7 +389,6 @@ export const useGameStore =
           true,
         );
       },
-
       startExpedition: (
         expeditionId: string,
         crewId: string,
@@ -483,11 +401,9 @@ export const useGameStore =
                   entry.id ===
                   expeditionId,
               );
-
             if (!expedition) {
               return;
             }
-
             if (
               !state.unlockedCrew.includes(
                 crewId,
@@ -495,7 +411,6 @@ export const useGameStore =
             ) {
               return;
             }
-
             if (
               state.activeExpeditions.some(
                 (entry) =>
@@ -507,7 +422,6 @@ export const useGameStore =
                 'That crew member is already away.';
               return;
             }
-
             if (
               state.activeExpeditions.some(
                 (entry) =>
@@ -519,7 +433,6 @@ export const useGameStore =
                 'That expedition is already underway.';
               return;
             }
-
             state.activeExpeditions.push(
               {
                 id: expeditionId,
@@ -530,12 +443,10 @@ export const useGameStore =
                     1000,
               },
             );
-
             state.lastEvent = `${expedition.name} launched.`;
           },
         );
       },
-
       claimExpedition: (
         expeditionId: string,
       ) => {
@@ -547,36 +458,30 @@ export const useGameStore =
                   entry.id ===
                   expeditionId,
               );
-
             if (
               activeIndex === -1
             ) {
               return;
             }
-
             const active =
               state.activeExpeditions[
                 activeIndex
               ];
-
             if (!active) {
               return;
             }
-
             if (
               Date.now() <
               active.completeAt
             ) {
               return;
             }
-
             const expedition =
               expeditions.find(
                 (entry) =>
                   entry.id ===
                   expeditionId,
               );
-
             if (expedition) {
               for (const reward of expedition.rewards) {
                 const existing =
@@ -584,7 +489,6 @@ export const useGameStore =
                     reward.itemId
                   ] ??
                   new Decimal(0);
-
                 state.inventory[
                   reward.itemId
                 ] =
@@ -592,10 +496,8 @@ export const useGameStore =
                     reward.baseAmount,
                   );
               }
-
               state.lastEvent = `${expedition.name} returned with rewards.`;
             }
-
             state.activeExpeditions.splice(
               activeIndex,
               1,
@@ -603,7 +505,6 @@ export const useGameStore =
           },
         );
       },
-
       eatFruit: (
         fruitId: string,
       ) => {
@@ -614,12 +515,10 @@ export const useGameStore =
                 'Your body cannot consume a second Devil Fruit.';
               return;
             }
-
             const inventoryAmount =
               state.inventory[
                 fruitId
               ];
-
             if (
               inventoryAmount &&
               inventoryAmount.gt(0)
@@ -628,7 +527,6 @@ export const useGameStore =
                 fruitId
               ] =
                 inventoryAmount.minus(1);
-
               state.devilFruit =
                 fruitId;
             } else {
@@ -636,34 +534,28 @@ export const useGameStore =
                 state.worldFruits.indexOf(
                   fruitId,
                 );
-
               if (worldIndex === -1) {
                 return;
               }
-
               state.worldFruits.splice(
                 worldIndex,
                 1,
               );
-
               state.devilFruit =
                 fruitId;
             }
-
             const fruit =
               fruits.find(
                 (entry) =>
                   entry.id ===
                   fruitId,
               );
-
             state.lastEvent = fruit
               ? `${fruit.name} consumed. Your body has changed.`
               : 'A strange fruit has been consumed.';
           },
         );
       },
-
       challengeBoss: (
         bossId: string,
       ) => {
@@ -675,11 +567,9 @@ export const useGameStore =
                   entry.id ===
                   bossId,
               );
-
             if (!boss) {
               return;
             }
-
             if (
               state.currentChapter <
               boss.requiresChapter
@@ -688,7 +578,6 @@ export const useGameStore =
                 'That threat is beyond the current arc.';
               return;
             }
-
             if (
               state.defeatedBosses.includes(
                 boss.id,
@@ -698,7 +587,6 @@ export const useGameStore =
                 `${boss.name} has already been defeated.`;
               return;
             }
-
             if (
               !state.stamina.gte(
                 boss.staminaCost,
@@ -708,18 +596,15 @@ export const useGameStore =
                 `You need ${boss.staminaCost} stamina to challenge ${boss.name}.`;
               return;
             }
-
             state.stamina =
               state.stamina.minus(
                 boss.staminaCost,
               );
-
             const basePower =
               state.stats.str
                 .plus(state.stats.agi)
                 .plus(state.stats.end)
                 .plus(state.stats.wil);
-
             const damage =
               basePower
                 .times(
@@ -732,13 +617,11 @@ export const useGameStore =
                     state,
                   ),
                 );
-
             const previousBest =
               state.highestBossDamage[
                 boss.id
               ] ??
               new Decimal(0);
-
             if (
               damage.gt(previousBest)
             ) {
@@ -746,19 +629,16 @@ export const useGameStore =
                 boss.id
               ] = damage;
             }
-
             if (
               damage.gte(boss.hp)
             ) {
               state.defeatedBosses.push(
                 boss.id,
               );
-
               state.factions.infamy =
                 state.factions.infamy.plus(
                   boss.infamyReward,
                 );
-
               if (
                 boss.rewardItemId &&
                 boss.rewardItemAmount
@@ -768,7 +648,6 @@ export const useGameStore =
                     boss.rewardItemId
                   ] ??
                   new Decimal(0);
-
                 state.inventory[
                   boss.rewardItemId
                 ] =
@@ -776,7 +655,6 @@ export const useGameStore =
                     boss.rewardItemAmount,
                   );
               }
-
               state.lastEvent = `${boss.name} defeated. ${boss.rewardText}`;
             } else {
               state.lastEvent = `${boss.name} resisted. You dealt ${damage.toFixed(

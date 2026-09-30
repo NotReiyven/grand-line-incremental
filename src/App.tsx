@@ -1,59 +1,44 @@
 import {
   useEffect,
-  useMemo,
   useState,
 } from 'react';
-
 import {
   useGameStore,
 } from './store/gameStore';
-
 import {
   useSettingsStore,
 } from './store/settingsStore';
-
 import {
   formatDecimal,
 } from './utils/math';
-
 import {
   chapters,
 } from './data/chapters';
-
 import {
   crewList,
 } from './data/crew';
-
 import {
   expeditions,
 } from './data/expeditions';
-
 import {
   endingsMeta,
 } from './engine/prestige';
-
 import {
   skills,
 } from './data/skills';
-
 import {
   fruits,
 } from './data/fruits';
-
 import {
   worldBosses,
 } from './data/bosses';
-
 import type {
   Choice,
 } from './data/chapters';
-
 import {
   dispatchCommand,
 } from './engine/loop';
-
 import styles from './App.module.css';
-
 type Tab =
   | 'story'
   | 'training'
@@ -61,7 +46,6 @@ type Tab =
   | 'crew'
   | 'world'
   | 'settings';
-
 const formatTime = (
   totalSeconds: number,
 ): string => {
@@ -70,63 +54,50 @@ const formatTime = (
       0,
       Math.ceil(totalSeconds),
     );
-
   const hours =
     Math.floor(safe / 3600);
-
   const minutes =
     Math.floor(
       (safe % 3600) / 60,
     );
-
   const seconds =
     safe % 60;
-
   if (hours > 0) {
     return `${hours}h ${minutes
       .toString()
       .padStart(2, '0')}m`;
   }
-
   if (minutes > 0) {
     return `${minutes}m ${seconds
       .toString()
       .padStart(2, '0')}s`;
   }
-
   return `${seconds}s`;
 };
-
 const formatRep = (
   value: number,
 ): string => {
   if (value > 0) {
     return `+${value}`;
   }
-
   return value.toString();
 };
-
 function App() {
   const [
     activeTab,
     setActiveTab,
   ] = useState<Tab>('story');
-
   const isDead =
     useGameStore(
       (state) =>
         state.isDead,
     );
-
   if (isDead) {
     return <DeathScreen />;
   }
-
   return (
     <div className={styles.app}>
       <GameHeader />
-
       <nav
         className={styles.nav}
         aria-label="Game navigation"
@@ -141,7 +112,6 @@ function App() {
         >
           Story
         </TabButton>
-
         <TabButton
           active={
             activeTab === 'training'
@@ -152,7 +122,6 @@ function App() {
         >
           Training
         </TabButton>
-
         <TabButton
           active={
             activeTab === 'abilities'
@@ -165,7 +134,6 @@ function App() {
         >
           Abilities
         </TabButton>
-
         <TabButton
           active={
             activeTab === 'crew'
@@ -176,7 +144,6 @@ function App() {
         >
           Crew
         </TabButton>
-
         <TabButton
           active={
             activeTab === 'world'
@@ -187,7 +154,6 @@ function App() {
         >
           World
         </TabButton>
-
         <TabButton
           active={
             activeTab === 'settings'
@@ -201,30 +167,24 @@ function App() {
           Settings
         </TabButton>
       </nav>
-
       <main
         className={styles.content}
       >
         {activeTab === 'story' && (
           <StoryTab />
         )}
-
         {activeTab === 'training' && (
           <TrainingTab />
         )}
-
         {activeTab === 'abilities' && (
           <AbilitiesTab />
         )}
-
         {activeTab === 'crew' && (
           <CrewTab />
         )}
-
         {activeTab === 'world' && (
           <WorldTab />
         )}
-
         {activeTab === 'settings' && (
           <SettingsTab />
         )}
@@ -232,13 +192,11 @@ function App() {
     </div>
   );
 }
-
 interface TabButtonProps {
   active: boolean;
   onClick: () => void;
   children: string;
 }
-
 function TabButton({
   active,
   onClick,
@@ -263,13 +221,11 @@ function TabButton({
     </button>
   );
 }
-
 function GameHeader() {
   const era =
     useGameStore(
       (state) => state.era,
     );
-
   const stamina =
     useGameStore(
       (state) =>
@@ -278,7 +234,6 @@ function GameHeader() {
           0,
         ),
     );
-
   const maxStamina =
     useGameStore(
       (state) =>
@@ -287,7 +242,6 @@ function GameHeader() {
           0,
         ),
     );
-
   const infamy =
     useGameStore(
       (state) =>
@@ -297,13 +251,11 @@ function GameHeader() {
           0,
         ),
     );
-
   const lastEvent =
     useGameStore(
       (state) =>
         state.lastEvent,
     );
-
   const str =
     useGameStore(
       (state) =>
@@ -312,7 +264,6 @@ function GameHeader() {
           0,
         ),
     );
-
   const agi =
     useGameStore(
       (state) =>
@@ -321,7 +272,6 @@ function GameHeader() {
           0,
         ),
     );
-
   const end =
     useGameStore(
       (state) =>
@@ -330,7 +280,6 @@ function GameHeader() {
           0,
         ),
     );
-
   const wil =
     useGameStore(
       (state) =>
@@ -339,7 +288,6 @@ function GameHeader() {
           0,
         ),
     );
-
   return (
     <header
       className={styles.header}
@@ -353,14 +301,12 @@ function GameHeader() {
           >
             GRAND LINE
           </div>
-
           <h1
             className={styles.title}
           >
             The Endless Voyage
           </h1>
         </div>
-
         <div
           className={styles.headerMeta}
         >
@@ -370,7 +316,6 @@ function GameHeader() {
             <span>ERA</span>
             <strong>{era}</strong>
           </div>
-
           <div
             className={styles.metaItem}
           >
@@ -379,7 +324,6 @@ function GameHeader() {
               {stamina} / {maxStamina}
             </strong>
           </div>
-
           <div
             className={styles.metaItem}
           >
@@ -388,7 +332,6 @@ function GameHeader() {
           </div>
         </div>
       </div>
-
       <div
         className={styles.eventBar}
         aria-live="polite"
@@ -396,10 +339,8 @@ function GameHeader() {
         <span
           className={styles.eventMark}
         />
-
         <span>{lastEvent}</span>
       </div>
-
       <div
         className={styles.quickStats}
       >
@@ -423,7 +364,6 @@ function GameHeader() {
     </header>
   );
 }
-
 function HeaderStat({
   label,
   value,
@@ -440,20 +380,17 @@ function HeaderStat({
     </div>
   );
 }
-
 function DeathScreen() {
   const lastEnding =
     useGameStore(
       (state) =>
         state.lastEnding,
     );
-
   const confirmInheritWill =
     useGameStore(
       (state) =>
         state.confirmInheritWill,
     );
-
   const hakiMultiplier =
     useGameStore(
       (state) =>
@@ -462,30 +399,25 @@ function DeathScreen() {
           3,
         ),
     );
-
   const era =
     useGameStore(
       (state) => state.era,
     );
-
   const endings =
     useGameStore(
       (state) => state.endings,
     );
-
   const heirlooms =
     useGameStore(
       (state) =>
         state.heirlooms,
     );
-
   const endingInfo =
     lastEnding
       ? endingsMeta[
           lastEnding
         ]
       : null;
-
   return (
     <main
       className={styles.deathScreen}
@@ -500,11 +432,9 @@ function DeathScreen() {
         >
           ERA {era}
         </div>
-
         <h1>
           Your Journey Ends
         </h1>
-
         {endingInfo && (
           <div
             className={
@@ -517,17 +447,14 @@ function DeathScreen() {
             <h2>
               {endingInfo.name}
             </h2>
-
             <p>
               Heirloom secured
             </p>
-
             <strong>
               {endingInfo.heirloom}
             </strong>
           </div>
         )}
-
         <blockquote
           className={
             styles.deathQuote
@@ -536,7 +463,6 @@ function DeathScreen() {
           A man's dream will
           never die.
         </blockquote>
-
         <div
           className={
             styles.deathStats
@@ -550,7 +476,6 @@ function DeathScreen() {
               +{hakiMultiplier}
             </strong>
           </div>
-
           <div>
             <span>
               Endings found
@@ -559,7 +484,6 @@ function DeathScreen() {
               {endings.length}
             </strong>
           </div>
-
           <div>
             <span>
               Heirlooms
@@ -569,7 +493,6 @@ function DeathScreen() {
             </strong>
           </div>
         </div>
-
         <button
           type="button"
           className={
@@ -585,52 +508,44 @@ function DeathScreen() {
     </main>
   );
 }
-
 function StoryTab() {
   const chapterProgress =
     useGameStore(
       (state) =>
         state.chapterProgress,
     );
-
   const currentChapterId =
     useGameStore(
       (state) =>
         state.currentChapter,
     );
-
   const chapter =
     chapters.find(
       (entry) =>
         entry.id ===
         currentChapterId,
     );
-
   const makeChoice =
     useGameStore(
       (state) =>
         state.makeChoice,
     );
-
   const marineRep =
     useGameStore(
       (state) =>
         state.factions.marine,
     );
-
   const pirateRep =
     useGameStore(
       (state) =>
         state.factions.pirate,
     );
-
   const revRep =
     useGameStore(
       (state) =>
         state.factions
           .revolutionary,
     );
-
   const infamy =
     useGameStore(
       (state) =>
@@ -640,19 +555,16 @@ function StoryTab() {
           0,
         ),
     );
-
   const doubleAgentUnlocked =
     useGameStore(
       (state) =>
         state.doubleAgentUnlocked,
     );
-
   const doubleAgentActive =
     useGameStore(
       (state) =>
         state.doubleAgentActive,
     );
-
   if (!chapter) {
     return (
       <SectionCard>
@@ -663,7 +575,6 @@ function StoryTab() {
       </SectionCard>
     );
   }
-
   const toggleDoubleAgent =
     (): void => {
       dispatchCommand(
@@ -680,53 +591,42 @@ function StoryTab() {
                   state.factions
                     .marine,
               };
-
             state.doubleAgentActive =
               true;
-
             state.lockedFactions =
               [
                 'pirate',
                 'marine',
               ];
-
             state.factions.pirate =
               50;
             state.factions.marine =
               50;
-
             state.lastEvent =
               'Double-Agent identity activated. Pirate and Marine reputation is temporarily frozen.';
             return;
           }
-
           if (
             state.doubleAgentBackup
           ) {
             state.factions.pirate =
               state.doubleAgentBackup
                 .pirate;
-
             state.factions.marine =
               state.doubleAgentBackup
                 .marine;
           }
-
           state.doubleAgentActive =
             false;
-
           state.doubleAgentBackup =
             null;
-
           state.lockedFactions =
             null;
-
           state.lastEvent =
             'Double-Agent identity deactivated. Your original reputation returns.';
         },
       );
     };
-
   return (
     <>
       <section
@@ -740,11 +640,9 @@ function StoryTab() {
           ARC {chapter.arc} · CHAPTER{' '}
           {chapter.id}
         </div>
-
         <h2>
           {chapter.title}
         </h2>
-
         <p
           className={
             styles.leadText
@@ -752,7 +650,6 @@ function StoryTab() {
         >
           {chapter.description}
         </p>
-
         {chapter.speaker &&
           chapter.voiceLine && (
             <div
@@ -763,13 +660,11 @@ function StoryTab() {
               <strong>
                 {chapter.speaker}
               </strong>
-
               <span>
                 "{chapter.voiceLine}"
               </span>
             </div>
           )}
-
         {chapterProgress ===
           0 &&
           chapter.choices.length >
@@ -785,7 +680,6 @@ function StoryTab() {
                 ) => {
                   const requirement =
                     choice.requirement;
-
                   const disabled =
                     requirement !==
                       undefined &&
@@ -797,7 +691,6 @@ function StoryTab() {
                       ].lt(
                         requirement.value,
                       );
-
                   return (
                     <button
                       key={
@@ -821,7 +714,6 @@ function StoryTab() {
                           choice.text
                         }
                       </span>
-
                       {requirement && (
                         <small>
                           Requires{' '}
@@ -839,7 +731,6 @@ function StoryTab() {
               )}
             </div>
           )}
-
         {chapterProgress > 0 && (
           <div
             className={
@@ -852,7 +743,6 @@ function StoryTab() {
           </div>
         )}
       </section>
-
       <SectionCard
         title="World Standing"
       >
@@ -863,7 +753,6 @@ function StoryTab() {
             styles.pirateFill
           }
         />
-
         <FactionBar
           label="Marine"
           value={marineRep}
@@ -871,7 +760,6 @@ function StoryTab() {
             styles.marineFill
           }
         />
-
         <FactionBar
           label="Revolutionary"
           value={revRep}
@@ -879,7 +767,6 @@ function StoryTab() {
             styles.revolutionFill
           }
         />
-
         <div
           className={
             styles.infamyRow
@@ -893,7 +780,6 @@ function StoryTab() {
           </strong>
         </div>
       </SectionCard>
-
       {doubleAgentUnlocked && (
         <SectionCard>
           <div
@@ -905,7 +791,6 @@ function StoryTab() {
               <strong>
                 Double-Agent
               </strong>
-
               <p>
                 Freeze Pirate and
                 Marine reputation while
@@ -913,7 +798,6 @@ function StoryTab() {
                 50%.
               </p>
             </div>
-
             <input
               type="checkbox"
               checked={
@@ -929,7 +813,6 @@ function StoryTab() {
     </>
   );
 }
-
 function FactionBar({
   label,
   value,
@@ -944,7 +827,6 @@ function FactionBar({
       100,
       Math.abs(value),
     );
-
   return (
     <div
       className={
@@ -961,7 +843,6 @@ function FactionBar({
           {formatRep(value)}
         </strong>
       </div>
-
       <div
         className={
           styles.factionTrack
@@ -977,7 +858,6 @@ function FactionBar({
     </div>
   );
 }
-
 function TrainingTab() {
   const str =
     useGameStore(
@@ -987,7 +867,6 @@ function TrainingTab() {
           1,
         ),
     );
-
   const agi =
     useGameStore(
       (state) =>
@@ -996,7 +875,6 @@ function TrainingTab() {
           1,
         ),
     );
-
   const end =
     useGameStore(
       (state) =>
@@ -1005,7 +883,6 @@ function TrainingTab() {
           1,
         ),
     );
-
   const wil =
     useGameStore(
       (state) =>
@@ -1014,7 +891,6 @@ function TrainingTab() {
           1,
         ),
     );
-
   const stamina =
     useGameStore(
       (state) =>
@@ -1023,7 +899,6 @@ function TrainingTab() {
           0,
         ),
     );
-
   const maxStamina =
     useGameStore(
       (state) =>
@@ -1032,18 +907,15 @@ function TrainingTab() {
           0,
         ),
     );
-
   const train =
     useGameStore(
       (state) => state.train,
     );
-
   const canTrain =
     useGameStore(
       (state) =>
         state.stamina.gte(10),
     );
-
   const stats = [
     {
       key: 'str' as const,
@@ -1074,7 +946,6 @@ function TrainingTab() {
         'Resolve, Haki potential, and mental resistance.',
     },
   ];
-
   return (
     <>
       <SectionCard>
@@ -1091,12 +962,10 @@ function TrainingTab() {
             >
               TRAINING GROUNDS
             </div>
-
             <h2>
               Build the captain
               you want to become.
             </h2>
-
             <p>
               Stamina regenerates
               continuously. END also
@@ -1104,7 +973,6 @@ function TrainingTab() {
               ceiling over time.
             </p>
           </div>
-
           <div
             className={
               styles.staminaDisplay
@@ -1122,7 +990,6 @@ function TrainingTab() {
           </div>
         </div>
       </SectionCard>
-
       <section
         className={styles.statGrid}
       >
@@ -1142,21 +1009,17 @@ function TrainingTab() {
                 <span>
                   {stat.key.toUpperCase()}
                 </span>
-
                 <h3>
                   {stat.label}
                 </h3>
               </div>
-
               <strong>
                 {stat.value}
               </strong>
             </div>
-
             <p>
               {stat.description}
             </p>
-
             <button
               type="button"
               className={
@@ -1178,21 +1041,17 @@ function TrainingTab() {
     </>
   );
 }
-
 function AbilitiesTab() {
   const game =
     useGameStore();
-
   const eatFruit =
     game.eatFruit;
-
   const activeFruit =
     fruits.find(
       (fruit) =>
         fruit.id ===
         game.devilFruit,
     );
-
   const availableFruitIds =
     Array.from(
       new Set([
@@ -1206,7 +1065,6 @@ function AbilitiesTab() {
         ),
       ]),
     );
-
   return (
     <>
       <SectionCard
@@ -1223,19 +1081,16 @@ function AbilitiesTab() {
               <span>
                 CURRENT POWER
               </span>
-
               <h3>
                 {activeFruit.name}
               </h3>
             </div>
-
             <strong>
               {activeFruit.multiplier.toFixed(
                 2,
               )}
               x
             </strong>
-
             <p>
               {
                 activeFruit.description
@@ -1252,7 +1107,6 @@ function AbilitiesTab() {
               Your body is still
               ordinary.
             </strong>
-
             <p>
               Consume a discovered
               Devil Fruit below to
@@ -1261,7 +1115,6 @@ function AbilitiesTab() {
             </p>
           </div>
         )}
-
         {!game.devilFruit &&
           availableFruitIds.length >
             0 && (
@@ -1278,29 +1131,24 @@ function AbilitiesTab() {
                         entry.id ===
                         fruitId,
                     );
-
                   if (!fruit) {
                     return null;
                   }
-
                   const inventoryAmount =
                     game.inventory[
                       fruitId
                     ];
-
                   const worldAmount =
                     game.worldFruits.filter(
                       (id) =>
                         id ===
                         fruitId,
                     ).length;
-
                   const amount =
                     worldAmount +
                     (inventoryAmount
                       ?.toNumber() ??
                       0);
-
                   return (
                     <article
                       key={fruit.id}
@@ -1313,18 +1161,15 @@ function AbilitiesTab() {
                           FOUND ×
                           {amount}
                         </span>
-
                         <h4>
                           {fruit.name}
                         </h4>
-
                         <p>
                           {
                             fruit.description
                           }
                         </p>
                       </div>
-
                       <button
                         type="button"
                         className={
@@ -1345,7 +1190,6 @@ function AbilitiesTab() {
             </div>
           )}
       </SectionCard>
-
       <SectionCard
         title="Haki"
         subtitle="Your spirit has a ceiling only until you break it."
@@ -1363,7 +1207,6 @@ function AbilitiesTab() {
             }
             max={5}
           />
-
           <AbilityMeter
             label="Armament"
             value={
@@ -1371,7 +1214,6 @@ function AbilitiesTab() {
             }
             max={5}
           />
-
           <div
             className={
               game.haki.conqueror
@@ -1382,14 +1224,12 @@ function AbilitiesTab() {
             <span>
               CONQUEROR
             </span>
-
             <strong>
               {game.haki
                 .conqueror
                 ? 'AWAKENED'
                 : 'DORMANT'}
             </strong>
-
             <p>
               A rare disposition
               associated with
@@ -1398,7 +1238,6 @@ function AbilitiesTab() {
           </div>
         </div>
       </SectionCard>
-
       <SectionCard
         title="Skills"
         subtitle="Core-stat thresholds unlock permanent techniques."
@@ -1413,12 +1252,10 @@ function AbilitiesTab() {
               game.unlockedSkills.includes(
                 skill.id,
               );
-
             const statValue =
               game.stats[
                 skill.stat
               ].toNumber();
-
             const progress =
               Math.min(
                 100,
@@ -1426,7 +1263,6 @@ function AbilitiesTab() {
                   skill.threshold) *
                   100,
               );
-
             return (
               <article
                 key={skill.id}
@@ -1445,12 +1281,10 @@ function AbilitiesTab() {
                     <span>
                       {skill.stat.toUpperCase()}
                     </span>
-
                     <h4>
                       {skill.name}
                     </h4>
                   </div>
-
                   <strong>
                     {unlocked
                       ? 'UNLOCKED'
@@ -1462,11 +1296,9 @@ function AbilitiesTab() {
                         )} / ${skill.threshold}`}
                   </strong>
                 </div>
-
                 <p>
                   {skill.description}
                 </p>
-
                 <div
                   className={
                     styles.progressTrack
@@ -1489,7 +1321,6 @@ function AbilitiesTab() {
     </>
   );
 }
-
 function AbilityMeter({
   label,
   value,
@@ -1504,7 +1335,6 @@ function AbilityMeter({
       100,
       (value / max) * 100,
     );
-
   return (
     <div
       className={
@@ -1514,11 +1344,9 @@ function AbilityMeter({
       <span>
         {label.toUpperCase()}
       </span>
-
       <strong>
         Lv. {value}
       </strong>
-
       <div
         className={
           styles.progressTrack
@@ -1533,7 +1361,6 @@ function AbilityMeter({
           }}
         />
       </div>
-
       <p>
         {value >= max
           ? 'Mastered'
@@ -1542,26 +1369,21 @@ function AbilityMeter({
     </div>
   );
 }
-
 function CrewTab() {
   const game =
     useGameStore();
-
   const [
     selectedExp,
     setSelectedExp,
   ] = useState(
     expeditions[0]?.id ?? '',
   );
-
   const [
     selectedCrew,
     setSelectedCrew,
   ] = useState('');
-
   const [, setCurrentTime] =
     useState(Date.now());
-
   const availableCrew =
     crewList.filter(
       (crew) =>
@@ -1569,7 +1391,6 @@ function CrewTab() {
           crew.id,
         ),
     );
-
   const busyCrewIds =
     new Set(
       game.activeExpeditions.map(
@@ -1577,7 +1398,6 @@ function CrewTab() {
           entry.crewId,
       ),
     );
-
   useEffect(() => {
     const interval =
       window.setInterval(
@@ -1588,14 +1408,12 @@ function CrewTab() {
         },
         1000,
       );
-
     return () => {
       window.clearInterval(
         interval,
       );
     };
   }, []);
-
   const handleStart =
     (): void => {
       if (
@@ -1604,15 +1422,12 @@ function CrewTab() {
       ) {
         return;
       }
-
       game.startExpedition(
         selectedExp,
         selectedCrew,
       );
-
       setSelectedCrew('');
     };
-
   return (
     <>
       <SectionCard
@@ -1644,21 +1459,17 @@ function CrewTab() {
                     <span>
                       CREW
                     </span>
-
                     <h3>
                       {crew.name}
                     </h3>
-
                     <strong>
                       {crew.title}
                     </strong>
-
                     <p>
                       {
                         crew.description
                       }
                     </p>
-
                     <small>
                       +{Math.round(
                         crew
@@ -1680,7 +1491,6 @@ function CrewTab() {
           </div>
         )}
       </SectionCard>
-
       <SectionCard
         title="Expeditions"
         subtitle="Send available crew away while you train."
@@ -1696,7 +1506,6 @@ function CrewTab() {
               <span>
                 EXPEDITION
               </span>
-
               <select
                 value={
                   selectedExp
@@ -1728,12 +1537,10 @@ function CrewTab() {
                 )}
               </select>
             </label>
-
             <label>
               <span>
                 CREW
               </span>
-
               <select
                 value={
                   selectedCrew
@@ -1750,7 +1557,6 @@ function CrewTab() {
                 <option value="">
                   Select crew
                 </option>
-
                 {availableCrew.map(
                   (crew) => (
                     <option
@@ -1775,7 +1581,6 @@ function CrewTab() {
                 )}
               </select>
             </label>
-
             <button
               type="button"
               className={
@@ -1793,7 +1598,6 @@ function CrewTab() {
             </button>
           </div>
         )}
-
         <div
           className={
             styles.expeditionList
@@ -1814,14 +1618,12 @@ function CrewTab() {
                       entry.id ===
                       active.id,
                   );
-
                 const crew =
                   crewList.find(
                     (entry) =>
                       entry.id ===
                       active.crewId,
                   );
-
                 const remaining =
                   Math.max(
                     0,
@@ -1831,10 +1633,8 @@ function CrewTab() {
                         1000,
                     ),
                   );
-
                 const complete =
                   remaining === 0;
-
                 return (
                   <article
                     key={`${active.id}-${active.crewId}`}
@@ -1846,13 +1646,11 @@ function CrewTab() {
                       <span>
                         AWAY
                       </span>
-
                       <h4>
                         {
                           expedition?.name
                         }
                       </h4>
-
                       <p>
                         Assigned:{' '}
                         {
@@ -1861,7 +1659,6 @@ function CrewTab() {
                         }
                       </p>
                     </div>
-
                     {complete ? (
                       <button
                         type="button"
@@ -1890,7 +1687,6 @@ function CrewTab() {
           )}
         </div>
       </SectionCard>
-
       <SectionCard
         title="Ship Cargo"
       >
@@ -1925,7 +1721,6 @@ function CrewTab() {
                       ' ',
                     )}
                   </span>
-
                   <strong>
                     {formatDecimal(
                       amount,
@@ -1941,17 +1736,14 @@ function CrewTab() {
     </>
   );
 }
-
 function WorldTab() {
   const game =
     useGameStore();
-
   const currentPower =
     game.stats.str
       .plus(game.stats.agi)
       .plus(game.stats.end)
       .plus(game.stats.wil);
-
   return (
     <>
       <SectionCard
@@ -1966,7 +1758,6 @@ function WorldTab() {
           <span>
             CURRENT COMBAT POWER
           </span>
-
           <strong>
             {formatDecimal(
               currentPower,
@@ -1975,7 +1766,6 @@ function WorldTab() {
           </strong>
         </div>
       </SectionCard>
-
       <div
         className={
           styles.bossList
@@ -1986,18 +1776,15 @@ function WorldTab() {
             const locked =
               game.currentChapter <
               boss.requiresChapter;
-
             const defeated =
               game.defeatedBosses.includes(
                 boss.id,
               );
-
             const best =
               game
                 .highestBossDamage[
                 boss.id
               ];
-
             return (
               <article
                 key={boss.id}
@@ -2020,12 +1807,10 @@ function WorldTab() {
                           ? 'DEFEATED'
                           : 'WORLD THREAT'}
                     </span>
-
                     <h3>
                       {boss.name}
                     </h3>
                   </div>
-
                   <strong>
                     HP{' '}
                     {formatDecimal(
@@ -2034,13 +1819,11 @@ function WorldTab() {
                     )}
                   </strong>
                 </div>
-
                 <p>
                   {
                     boss.description
                   }
                 </p>
-
                 <div
                   className={
                     styles.bossMeta
@@ -2053,7 +1836,6 @@ function WorldTab() {
                     }{' '}
                     stamina
                   </span>
-
                   <span>
                     Reward:{' '}
                     {
@@ -2061,7 +1843,6 @@ function WorldTab() {
                     }
                   </span>
                 </div>
-
                 {best && (
                   <div
                     className={
@@ -2075,7 +1856,6 @@ function WorldTab() {
                     )}
                   </div>
                 )}
-
                 <button
                   type="button"
                   className={
@@ -2108,7 +1888,6 @@ function WorldTab() {
     </>
   );
 }
-
 function SettingsTab() {
   const {
     audioEnabled,
@@ -2119,7 +1898,6 @@ function SettingsTab() {
     toggleMotion,
     resetSave,
   } = useSettingsStore();
-
   return (
     <>
       <SectionCard
@@ -2139,7 +1917,6 @@ function SettingsTab() {
               toggleAudio
             }
           />
-
           <SettingRow
             label="Haptics"
             description="Use short vibration feedback on supported devices."
@@ -2148,7 +1925,6 @@ function SettingsTab() {
               toggleHaptics
             }
           />
-
           <SettingRow
             label="Reduce motion"
             description="Remove most interface transitions."
@@ -2161,7 +1937,6 @@ function SettingsTab() {
           />
         </div>
       </SectionCard>
-
       <SectionCard
         title="Danger Zone"
         subtitle="This permanently clears your local voyage."
@@ -2176,7 +1951,6 @@ function SettingsTab() {
               window.confirm(
                 'Start a new voyage? This erases the current local save.',
               );
-
             if (confirmed) {
               resetSave();
             }
@@ -2188,7 +1962,6 @@ function SettingsTab() {
     </>
   );
 }
-
 function SettingRow({
   label,
   description,
@@ -2210,12 +1983,10 @@ function SettingRow({
         <strong>
           {label}
         </strong>
-
         <p>
           {description}
         </p>
       </div>
-
       <input
         type="checkbox"
         checked={checked}
@@ -2224,7 +1995,6 @@ function SettingRow({
     </label>
   );
 }
-
 function SectionCard({
   title,
   subtitle,
@@ -2248,7 +2018,6 @@ function SectionCard({
         >
           <div>
             <h2>{title}</h2>
-
             {subtitle && (
               <p>
                 {subtitle}
@@ -2257,12 +2026,10 @@ function SectionCard({
           </div>
         </div>
       )}
-
       {children}
     </section>
   );
 }
-
 function EmptyState({
   children,
 }: {
@@ -2278,5 +2045,4 @@ function EmptyState({
     </div>
   );
 }
-
 export default App;
