@@ -15,6 +15,12 @@ export interface FactionReputation {
   infamy: Decimal;
 }
 
+export interface ActiveExpedition {
+  id: string;
+  crewId: string;
+  completeAt: number;
+}
+
 export interface GameState {
   stats: CoreStats;
   factions: FactionReputation;
@@ -27,11 +33,13 @@ export interface GameState {
   doubleAgentUnlocked: boolean;
   doubleAgentActive: boolean;
   lockedFactions: [Faction, Faction] | null;
-  // Prestige fields
   era: number;
   endings: string[];
   heirlooms: string[];
   hakiMultiplier: Decimal;
   isDead: boolean;
   lastEnding?: string;
+  unlockedCrew: string[];
+  activeExpeditions: ActiveExpedition[];
+  inventory: Record;
 }

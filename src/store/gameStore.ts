@@ -4,6 +4,8 @@ import { createInitialState } from '../engine/save';
 import { dispatchCommand } from '../engine/loop';
 import { inheritWill, triggerEnding } from '../engine/prestige';
 import { chapters } from '../data/chapters';
+import { crewList } from '../data/crew';
+import { expeditions } from '../data/expeditions';
 import Decimal from 'break_eternity.js';
 
 interface GameStore extends GameState {
@@ -11,6 +13,8 @@ interface GameStore extends GameState {
   train: (stat: keyof GameState['stats']) => void;
   makeChoice: (choiceId: string) => void;
   confirmInheritWill: () => void;
+  startExpedition: (expeditionId: string, crewId: string) => void;
+  claimExpedition: (expeditionId: string) => void;
 }
 
 export const useGameStore = create()((set) => ({
@@ -20,8 +24,18 @@ export const useGameStore = create()((set) => ({
     dispatchCommand((state) => {
       if (state.stamina.gte(10)) {
         state.stamina = state.stamina.minus(10);
+        
+        let crewMult = 0;
+        state.unlockedCrew.forEach(cId => {
+          const crew = crewList.find(c => c.id === cId);
+          if (crew && crew.passiveMultiplier.stat === stat) {
+            crewMult += crew.passiveMultiplier.value;
+          }
+        });
+
         const hakiMult = state.hakiMultiplier.plus(1);
-        state.stats[stat] = state.stats[stat].plus(new Decimal(1).times(hakiMult));
+        const finalGain = new Decimal(1).times(hakiMult).times(1 + crewMult);
+        state.stats[stat] = state.stats[stat].plus(finalGain);
       }
     });
   },
@@ -39,6 +53,10 @@ export const useGameStore = create()((set) => ({
         }
       });
       if (choice.infamyDelta) state.factions.infamy = state.factions.infamy.plus(choice.infamyDelta);
+      
+      if (choice.crewUnlock && !state.unlockedCrew.includes(choice.crewUnlock)) {
+        state.unlockedCrew.push(choice.crewUnlock);
+      }
 
       if (choice.powerCheck) {
         const statValue = state.stats[choice.powerCheck.stat];
@@ -64,7 +82,37 @@ export const useGameStore = create()((set) => ({
     });
   },
   confirmInheritWill: () => {
-    const inheritWillAction = (state: GameState) => inheritWill(state);
-    dispatchCommand(inheritWillAction);
+    dispatchCommand((state) => inheritWill(state));
+  },
+  startExpedition: (expeditionId, crewId) => {
+    dispatchCommand((state) => {
+      const exp = expeditions.find(e => e.id === expeditionId);
+      if (!exp) return;
+      if (state.activeExpeditions.some(e => e.crewId === crewId)) return;
+      if (state.activeExpeditions.some(e => e.id === expeditionId)) return;
+
+      state.activeExpeditions.push({
+        id: expeditionId,
+        crewId,
+        completeAt: Date.now() + (exp.durationSeconds * 1000)
+      });
+    });
+  },
+  claimExpedition: (expeditionId) => {
+    dispatchCommand((state) => {
+      const activeIdx = state.activeExpeditions.findIndex(e => e.id === expeditionId);
+      if (activeIdx === -1) return;
+      const active = state.activeExpeditions[activeIdx];
+      if (Date.now() < active.completeAt) return;
+
+      const exp = expeditions.find(e => e.id === expeditionId);
+      if (exp) {
+        exp.rewards.forEach(reward => {
+          if (!state.inventory[reward.itemId]) state.inventory[reward.itemId] = new Decimal(0);
+          state.inventory[reward.itemId] = state.inventory[reward.itemId].plus(reward.baseAmount);
+        });
+      }
+      state.activeExpeditions.splice(activeIdx, 1);
+    });
   }
 }));

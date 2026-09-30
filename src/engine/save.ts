@@ -1,13 +1,9 @@
 import { z } from 'zod';
 import Decimal from 'break_eternity.js';
-import type { GameState } from './types';
+import type { GameState, ActiveExpedition } from './types';
 import type { Faction } from '../data/chapters';
 
-type SerializedDecimal = {
-  sign?: number;
-  mag?: number;
-  layer?: number;
-};
+type SerializedDecimal = { sign?: number; mag?: number; layer?: number; };
 
 const decimalFromComponents = (sign: number, layer: number, mag: number): Decimal => {
   const DecimalConstructor = Decimal as unknown as {
@@ -16,43 +12,29 @@ const decimalFromComponents = (sign: number, layer: number, mag: number): Decima
   return DecimalConstructor.fromComponents(sign, layer, mag);
 };
 
-const DecimalSchema = z
-  .union([
-    z.string(),
-    z.number(),
-    z.object({
-      sign: z.number().optional(),
-      mag: z.number().optional(),
-      layer: z.number().optional(),
-    }),
-  ])
-  .transform((value): Decimal => {
-    if (typeof value === 'string' || typeof value === 'number') {
-      return new Decimal(value);
-    }
-    const serialized = value as SerializedDecimal;
-    return decimalFromComponents(
-      serialized.sign ?? 0,
-      serialized.layer ?? 0,
-      serialized.mag ?? 0,
-    );
-  });
+const DecimalSchema = z.union([
+  z.string(), z.number(), z.object({ sign: z.number().optional(), mag: z.number().optional(), layer: z.number().optional() })
+]).transform((value): Decimal => {
+  if (typeof value === 'string' || typeof value === 'number') return new Decimal(value);
+  const serialized = value as SerializedDecimal;
+  return decimalFromComponents(serialized.sign ?? 0, serialized.layer ?? 0, serialized.mag ?? 0);
+});
 
 const CoreStatsSchema = z.object({
-  str: DecimalSchema,
-  agi: DecimalSchema,
-  end: DecimalSchema,
-  wil: DecimalSchema,
+  str: DecimalSchema, agi: DecimalSchema, end: DecimalSchema, wil: DecimalSchema,
 });
 
 const FactionsSchema = z.object({
-  pirate: z.number(),
-  marine: z.number(),
-  revolutionary: z.number(),
-  infamy: DecimalSchema,
+  pirate: z.number(), marine: z.number(), revolutionary: z.number(), infamy: DecimalSchema,
 });
 
 const FactionEnumSchema = z.enum(['marine', 'pirate', 'revolutionary']);
+
+const ActiveExpeditionSchema = z.object({
+  id: z.string(),
+  crewId: z.string(),
+  completeAt: z.number()
+});
 
 export const SaveSchema = z.object({
   version: z.number(),
@@ -68,6 +50,15 @@ export const SaveSchema = z.object({
     doubleAgentUnlocked: z.boolean(),
     doubleAgentActive: z.boolean(),
     lockedFactions: z.tuple([FactionEnumSchema, FactionEnumSchema]).nullable(),
+    era: z.number(),
+    endings: z.array(z.string()),
+    heirlooms: z.array(z.string()),
+    hakiMultiplier: DecimalSchema,
+    isDead: z.boolean(),
+    lastEnding: z.string().optional(),
+    unlockedCrew: z.array(z.string()).default([]),
+    activeExpeditions: z.array(ActiveExpeditionSchema).default([]),
+    inventory: z.record(DecimalSchema).default({})
   }),
 });
 
@@ -75,27 +66,13 @@ const SAVE_KEY = 'grand_line_v1';
 const BACKUP_KEY = 'grand_line_backup';
 
 export const createInitialState = (): GameState => ({
-  stats: {
-    str: new Decimal(10),
-    agi: new Decimal(10),
-    end: new Decimal(10),
-    wil: new Decimal(10),
-  },
-  factions: {
-    pirate: 0,
-    marine: 0,
-    revolutionary: 0,
-    infamy: new Decimal(0),
-  },
-  stamina: new Decimal(100),
-  maxStamina: new Decimal(100),
-  lastTick: Date.now(),
-  chapterProgress: 0,
-  currentArc: 1,
-  currentChapter: 1,
-  doubleAgentUnlocked: false,
-  doubleAgentActive: false,
-  lockedFactions: null,
+  stats: { str: new Decimal(10), agi: new Decimal(10), end: new Decimal(10), wil: new Decimal(10) },
+  factions: { pirate: 0, marine: 0, revolutionary: 0, infamy: new Decimal(0) },
+  stamina: new Decimal(100), maxStamina: new Decimal(100), lastTick: Date.now(),
+  chapterProgress: 0, currentArc: 1, currentChapter: 1,
+  doubleAgentUnlocked: false, doubleAgentActive: false, lockedFactions: null,
+  era: 1, endings: [], heirlooms: [], hakiMultiplier: new Decimal(0), isDead: false,
+  unlockedCrew: [], activeExpeditions: [], inventory: {}
 });
 
 export const saveGame = (state: GameState, slot: string = SAVE_KEY): void => {
@@ -106,23 +83,15 @@ export const saveGame = (state: GameState, slot: string = SAVE_KEY): void => {
 export const loadGame = (): GameState => {
   const raw = localStorage.getItem(SAVE_KEY);
   if (!raw) return createInitialState();
-
   try {
-    const parsed: unknown = JSON.parse(raw);
-    const validated = SaveSchema.safeParse(parsed);
-
+    const validated = SaveSchema.safeParse(JSON.parse(raw));
     if (validated.success) return validated.data.state as GameState;
-
     localStorage.setItem(`\({SAVE_KEY}_quarantine_\){Date.now()}`, raw);
     const backup = localStorage.getItem(BACKUP_KEY);
-
     if (backup) {
-      const parsedBackup: unknown = JSON.parse(backup);
-      const validatedBackup = SaveSchema.safeParse(parsedBackup);
+      const validatedBackup = SaveSchema.safeParse(JSON.parse(backup));
       if (validatedBackup.success) return validatedBackup.data.state as GameState;
     }
     return createInitialState();
-  } catch {
-    return createInitialState();
-  }
+  } catch { return createInitialState(); }
 };

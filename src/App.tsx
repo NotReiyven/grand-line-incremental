@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from './store/gameStore';
 import { useSettingsStore } from './store/settingsStore';
 import { formatDecimal } from './utils/math';
 import { chapters } from './data/chapters';
+import { crewList } from './data/crew';
+import { expeditions } from './data/expeditions';
 import { endingsMeta } from './engine/prestige';
 import type { Choice } from './data/chapters';
 import { dispatchCommand } from './engine/loop';
@@ -10,7 +12,7 @@ import styles from './App.module.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState<
-    'story' | 'training' | 'settings'
+    'story' | 'training' | 'crew' | 'settings'
   >('story');
 
   const isDead = useGameStore((s) => s.isDead);
@@ -42,6 +44,15 @@ function App() {
 
         <button
           type="button"
+          onClick={() => setActiveTab('crew')}
+          aria-pressed={activeTab === 'crew'}
+          className={activeTab === 'crew' ? styles.activeTab : ''}
+        >
+          Crew
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('settings')}
           aria-pressed={activeTab === 'settings'}
           className={activeTab === 'settings' ? styles.activeTab : ''}
@@ -53,6 +64,7 @@ function App() {
       <main className={styles.content}>
         {activeTab === 'story' && <StoryTab />}
         {activeTab === 'training' && <TrainingTab />}
+        {activeTab === 'crew' && <CrewTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </main>
     </div>
@@ -124,16 +136,11 @@ function StoryTab() {
     );
   }
 
-  const getStatVal = (stat: string): number => {
+  const getStatVal = (stat: Choice['requirement'] extends undefined
+    ? never
+    : NonNullable<Choice['requirement']>['stat']): number => {
     const stats = useGameStore.getState().stats;
-    const key = stat as keyof typeof stats;
-    const value = stats[key];
-
-    if (value && typeof value.toNumber === 'function') {
-      return value.toNumber();
-    }
-
-    return 0;
+    return stats[stat].toNumber();
   };
 
   const toggleDoubleAgent = () => {
@@ -211,10 +218,7 @@ function StoryTab() {
             <strong> Activate Double-Agent</strong>
           </label>
 
-          <p>
-            Locks Pirate &amp; Marine at +50 and applies -50% passive stat
-            gains.
-          </p>
+          <p>-50% passive stat gains while active.</p>
         </section>
       )}
     </section>
@@ -229,11 +233,8 @@ function TrainingTab() {
 
   const stamina = useGameStore((s) => formatDecimal(s.stamina, 0));
   const maxStamina = useGameStore((s) => formatDecimal(s.maxStamina, 0));
-  const paranoiaActive = useGameStore((s) => s.doubleAgentActive);
   const train = useGameStore((s) => s.train);
-
   const canTrain = useGameStore((s) => s.stamina.gte(10));
-  const passiveRate = paranoiaActive ? '+0.05' : '+0.10';
 
   return (
     <section className={styles.section}>
@@ -243,12 +244,6 @@ function TrainingTab() {
         Stamina: <strong>{stamina}</strong> /{' '}
         <strong>{maxStamina}</strong>
       </p>
-
-      <p>Base Passive Gain: {passiveRate} per second</p>
-
-      {paranoiaActive && (
-        <p>Paranoia Active: Passive gains halved.</p>
-      )}
 
       <div className={styles.trainingStats}>
         <div>
@@ -295,6 +290,183 @@ function TrainingTab() {
           </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+function CrewTab() {
+  const unlockedCrewIds = useGameStore((s) => s.unlockedCrew);
+  const activeExpeditions = useGameStore((s) => s.activeExpeditions);
+  const inventory = useGameStore((s) => s.inventory);
+  const startExpedition = useGameStore((s) => s.startExpedition);
+  const claimExpedition = useGameStore((s) => s.claimExpedition);
+
+  const [selectedExp, setSelectedExp] = useState(
+    expeditions[0]?.id ?? '',
+  );
+  const [selectedCrew, setSelectedCrew] = useState('');
+  const [, setCurrentTime] = useState(Date.now());
+
+  const availableCrew = crewList.filter((crew) =>
+    unlockedCrewIds.includes(crew.id),
+  );
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const handleStart = () => {
+    if (!selectedExp || !selectedCrew) return;
+
+    startExpedition(selectedExp, selectedCrew);
+    setSelectedCrew('');
+  };
+
+  return (
+    <section className={styles.section}>
+      <h2>Crew Manifest</h2>
+
+      {availableCrew.length === 0 ? (
+        <p>
+          No crew members recruited yet. Advance the story to find
+          allies.
+        </p>
+      ) : (
+        <div>
+          {availableCrew.map((crew) => (
+            <article key={crew.id} className={styles.card}>
+              <h3>
+                {crew.name} - {crew.title}
+              </h3>
+
+              <p>{crew.description}</p>
+
+              <p>
+                Passive: +{crew.passiveMultiplier.value * 100}% to{' '}
+                {crew.passiveMultiplier.stat.toUpperCase()} gain
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {availableCrew.length > 0 && (
+        <section>
+          <h3>Expeditions</h3>
+
+          <div>
+            <label>
+              Expedition
+              <select
+                value={selectedExp}
+                onChange={(event) => setSelectedExp(event.target.value)}
+              >
+                {expeditions.map((expedition) => (
+                  <option key={expedition.id} value={expedition.id}>
+                    {expedition.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Crew
+              <select
+                value={selectedCrew}
+                onChange={(event) => setSelectedCrew(event.target.value)}
+              >
+                <option value="">Select crew</option>
+
+                {availableCrew.map((crew) => (
+                  <option key={crew.id} value={crew.id}>
+                    {crew.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={!selectedExp || !selectedCrew}
+            >
+              Dispatch
+            </button>
+          </div>
+
+          <div>
+            {activeExpeditions.length === 0 ? (
+              <p>No active expeditions.</p>
+            ) : (
+              activeExpeditions.map((activeExpedition) => {
+                const expedition = expeditions.find(
+                  (exp) => exp.id === activeExpedition.id,
+                );
+
+                const crew = crewList.find(
+                  (member) => member.id === activeExpedition.crewId,
+                );
+
+                const remaining = Math.max(
+                  0,
+                  Math.ceil(
+                    (activeExpedition.completeAt - Date.now()) / 1000,
+                  ),
+                );
+
+                const isDone = remaining === 0;
+
+                return (
+                  <article
+                    key={`${activeExpedition.id}-${activeExpedition.crewId}`}
+                    className={styles.card}
+                  >
+                    <h4>{expedition?.name ?? 'Unknown Expedition'}</h4>
+
+                    <p>
+                      Assigned:{' '}
+                      {crew?.name ?? activeExpedition.crewId}
+                    </p>
+
+                    {isDone ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          claimExpedition(activeExpedition.id)
+                        }
+                      >
+                        Claim Rewards
+                      </button>
+                    ) : (
+                      <p>Returns in: {remaining}s</p>
+                    )}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <h3>Ship Cargo</h3>
+
+        {Object.keys(inventory).length === 0 ? (
+          <p>Cargo hold is empty.</p>
+        ) : (
+          <div>
+            {Object.entries(inventory).map(([itemId, amount]) => (
+              <p key={itemId}>
+                {itemId.toUpperCase()}: {formatDecimal(amount, 0)}
+              </p>
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

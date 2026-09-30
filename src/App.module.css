@@ -100,3 +100,23 @@
   padding: var(--spacing-sm);
   margin-top: var(--spacing-md);
 }
+
+.crewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.crewCard {
+  border: 1px solid var(--color-paper-dark);
+  padding: var(--spacing-sm);
+  background-color: rgba(0,0,0,0.2);
+}
+
+.inventoryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+}

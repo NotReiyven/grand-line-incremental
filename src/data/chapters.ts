@@ -18,6 +18,7 @@ export interface Choice {
   requirement?: Requirement;
   powerCheck?: PowerCheck;
   endingId?: string;
+  crewUnlock?: string;
 }
 
 export interface Chapter {
@@ -50,9 +51,9 @@ export const chapters: Chapter[] = [
   },
   {
     id: 4, arc: 1, title: 'Pirate Hunter Ambush',
-    description: 'A mercenary ship flanks you during a squall.',
+    description: 'A mercenary ship flanks you during a squall. The bounty hunter aboard looks strong.',
     choices: [
-      { id: 'c4_fight', text: 'Sink them', factionDeltas: [{ faction: 'pirate', delta: 5 }], infamyDelta: 20, nextChapterId: 5 }
+      { id: 'c4_fight', text: 'Beat him and force him to join', factionDeltas: [{ faction: 'pirate', delta: 5 }], infamyDelta: 20, crewUnlock: 'c_hunter', nextChapterId: 5 }
     ]
   },
   {
