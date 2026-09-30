@@ -1,6 +1,7 @@
 import type { GameState } from './types';
 import Decimal from 'break_eternity.js';
 import { saveGame } from './save';
+import { fruits } from '../data/fruits';
 
 export const TICK_RATE = 10;
 export const MS_PER_TICK = 1000 / TICK_RATE;
@@ -32,7 +33,14 @@ const catchUpOffline = (seconds: number) => {
   
   const hakiMult = currentState.hakiMultiplier.plus(1);
   const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
-  const passiveGain = new Decimal(seconds * 0.01 * paranoiaMult).times(hakiMult);
+  let fruitMult = 1;
+  
+  if (currentState.devilFruit) {
+    const activeFruit = fruits.find(f => f.id === currentState.devilFruit);
+    if (activeFruit) fruitMult = activeFruit.multiplier;
+  }
+  
+  const passiveGain = new Decimal(seconds * 0.01 * paranoiaMult).times(hakiMult).times(fruitMult);
   
   currentState.stats.str = currentState.stats.str.plus(passiveGain);
   currentState.stats.agi = currentState.stats.agi.plus(passiveGain);
@@ -59,7 +67,14 @@ const tick = () => {
   
   const hakiMult = currentState.hakiMultiplier.plus(1);
   const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
-  const passiveGain = new Decimal(0.01 * paranoiaMult).times(hakiMult);
+  let fruitMult = 1;
+
+  if (currentState.devilFruit) {
+    const activeFruit = fruits.find(f => f.id === currentState.devilFruit);
+    if (activeFruit) fruitMult = activeFruit.multiplier;
+  }
+  
+  const passiveGain = new Decimal(0.01 * paranoiaMult).times(hakiMult).times(fruitMult);
   
   currentState.stats.str = currentState.stats.str.plus(passiveGain);
   currentState.stats.agi = currentState.stats.agi.plus(passiveGain);

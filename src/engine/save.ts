@@ -31,9 +31,11 @@ const FactionsSchema = z.object({
 const FactionEnumSchema = z.enum(['marine', 'pirate', 'revolutionary']);
 
 const ActiveExpeditionSchema = z.object({
-  id: z.string(),
-  crewId: z.string(),
-  completeAt: z.number()
+  id: z.string(), crewId: z.string(), completeAt: z.number()
+});
+
+const HakiSchema = z.object({
+  observation: z.number(), armament: z.number(), conqueror: z.boolean()
 });
 
 export const SaveSchema = z.object({
@@ -58,7 +60,12 @@ export const SaveSchema = z.object({
     lastEnding: z.string().optional(),
     unlockedCrew: z.array(z.string()).default([]),
     activeExpeditions: z.array(ActiveExpeditionSchema).default([]),
-    inventory: z.record(DecimalSchema).default({})
+    inventory: z.record(DecimalSchema).default({}),
+    unlockedSkills: z.array(z.string()).default([]),
+    haki: HakiSchema.default({ observation: 0, armament: 0, conqueror: false }),
+    devilFruit: z.string().nullable().default(null),
+    worldFruits: z.array(z.string()).default(['fruit_gum', 'fruit_chop', 'fruit_smoke']),
+    lockedFruits: z.array(z.string()).default([])
   }),
 });
 
@@ -72,7 +79,12 @@ export const createInitialState = (): GameState => ({
   chapterProgress: 0, currentArc: 1, currentChapter: 1,
   doubleAgentUnlocked: false, doubleAgentActive: false, lockedFactions: null,
   era: 1, endings: [], heirlooms: [], hakiMultiplier: new Decimal(0), isDead: false,
-  unlockedCrew: [], activeExpeditions: [], inventory: {}
+  unlockedCrew: [], activeExpeditions: [], inventory: {},
+  unlockedSkills: [],
+  haki: { observation: 0, armament: 0, conqueror: Math.random() < 0.05 },
+  devilFruit: null,
+  worldFruits: ['fruit_gum', 'fruit_chop', 'fruit_smoke'],
+  lockedFruits: []
 });
 
 export const saveGame = (state: GameState, slot: string = SAVE_KEY): void => {

@@ -6,6 +6,8 @@ import { inheritWill, triggerEnding } from '../engine/prestige';
 import { chapters } from '../data/chapters';
 import { crewList } from '../data/crew';
 import { expeditions } from '../data/expeditions';
+import { skills } from '../data/skills';
+import { fruits } from '../data/fruits';
 import Decimal from 'break_eternity.js';
 
 interface GameStore extends GameState {
@@ -15,11 +17,25 @@ interface GameStore extends GameState {
   confirmInheritWill: () => void;
   startExpedition: (expeditionId: string, crewId: string) => void;
   claimExpedition: (expeditionId: string) => void;
+  eatFruit: (fruitId: string) => void;
 }
+
+const checkSkillUnlocks = (state: GameState) => {
+  skills.forEach(skill => {
+    if (!state.unlockedSkills.includes(skill.id)) {
+      if (state.stats[skill.stat].gte(skill.threshold)) {
+        state.unlockedSkills.push(skill.id);
+      }
+    }
+  });
+};
 
 export const useGameStore = create()((set) => ({
   ...createInitialState(),
-  sync: (state) => set({ ...state }),
+  sync: (state) => {
+    checkSkillUnlocks(state);
+    set({ ...state });
+  },
   train: (stat) => {
     dispatchCommand((state) => {
       if (state.stamina.gte(10)) {
@@ -33,9 +49,17 @@ export const useGameStore = create()((set) => ({
           }
         });
 
+        let fruitMult = 1;
+        if (state.devilFruit) {
+          const activeFruit = fruits.find(f => f.id === state.devilFruit);
+          if (activeFruit) fruitMult = activeFruit.multiplier;
+        }
+
         const hakiMult = state.hakiMultiplier.plus(1);
-        const finalGain = new Decimal(1).times(hakiMult).times(1 + crewMult);
+        const finalGain = new Decimal(1).times(hakiMult).times(1 + crewMult).times(fruitMult);
         state.stats[stat] = state.stats[stat].plus(finalGain);
+        
+        checkSkillUnlocks(state);
       }
     });
   },
@@ -82,7 +106,8 @@ export const useGameStore = create()((set) => ({
     });
   },
   confirmInheritWill: () => {
-    dispatchCommand((state) => inheritWill(state));
+    const inheritWillAction = (state: GameState) => inheritWill(state);
+    dispatchCommand(inheritWillAction);
   },
   startExpedition: (expeditionId, crewId) => {
     dispatchCommand((state) => {
@@ -113,6 +138,15 @@ export const useGameStore = create()((set) => ({
         });
       }
       state.activeExpeditions.splice(activeIdx, 1);
+    });
+  },
+  eatFruit: (fruitId) => {
+    dispatchCommand((state) => {
+      if (state.devilFruit) return; 
+      if (!state.inventory[fruitId] || state.inventory[fruitId].lte(0)) return; 
+      
+      state.inventory[fruitId] = state.inventory[fruitId].minus(1);
+      state.devilFruit = fruitId;
     });
   }
 }));

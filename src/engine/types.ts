@@ -21,6 +21,12 @@ export interface ActiveExpedition {
   completeAt: number;
 }
 
+export interface HakiState {
+  observation: number;
+  armament: number;
+  conqueror: boolean;
+}
+
 export interface GameState {
   stats: CoreStats;
   factions: FactionReputation;
@@ -41,5 +47,11 @@ export interface GameState {
   lastEnding?: string;
   unlockedCrew: string[];
   activeExpeditions: ActiveExpedition[];
-  inventory: Record;
+  inventory: Record<string, Decimal>;
+  
+  unlockedSkills: string[];
+  haki: HakiState;
+  devilFruit: string | null;
+  worldFruits: string[];
+  lockedFruits: string[];
 }

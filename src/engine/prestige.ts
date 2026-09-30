@@ -1,43 +1,23 @@
 import type { GameState } from './types';
+import Decimal from 'break_eternity.js';
 import { createInitialState } from './save';
 
-interface EndingMeta {
-  name: string;
-  heirloom: string;
-}
-
-export const endingsMeta: Record<string, EndingMeta> = {
-  pirate_death: {
-    name: 'Going Down Swinging',
-    heirloom: 'Shattered Jolly Roger',
-  },
-  marine_death: {
-    name: "A Traitor's End",
-    heirloom: "Admiral's Coat",
-  },
-  marine_capture: {
-    name: 'Chained Hound',
-    heirloom: 'Seastone Cuffs',
-  },
-  pirate_capture: {
-    name: 'Impel Down Inmate',
-    heirloom: 'Tarnished Coin',
-  },
+export const endingsMeta: Record = {
+  pirate_death: { name: 'Going Down Swinging', heirloom: 'Shattered Jolly Roger' },
+  marine_death: { name: 'A Traitor\'s End', heirloom: 'Admiral\'s Coat' },
+  marine_capture: { name: 'Chained Hound', heirloom: 'Seastone Cuffs' },
+  pirate_capture: { name: 'Impel Down Inmate', heirloom: 'Tarnished Coin' }
 };
 
-export const triggerEnding = (
-  state: GameState,
-  endingId: string,
-): void => {
+export const triggerEnding = (state: GameState, endingId: string) => {
   state.isDead = true;
   state.lastEnding = endingId;
-
   if (!state.endings.includes(endingId)) {
     state.endings.push(endingId);
   }
 };
 
-export const inheritWill = (state: GameState): void => {
+export const inheritWill = (state: GameState) => {
   const endingId = state.lastEnding;
   const ending = endingId ? endingsMeta[endingId] : undefined;
   const newHeirloom = ending?.heirloom;
@@ -45,25 +25,34 @@ export const inheritWill = (state: GameState): void => {
   const oldEra = state.era;
   const oldEndings = [...state.endings];
   const oldHeirlooms = new Set(state.heirlooms);
+  if (newHeirloom) oldHeirlooms.add(newHeirloom);
 
-  if (newHeirloom) {
-    oldHeirlooms.add(newHeirloom);
-  }
-
-  const totalStats = state.stats.str
-    .plus(state.stats.agi)
-    .plus(state.stats.end)
-    .plus(state.stats.wil);
-
+  const totalStats = state.stats.str.plus(state.stats.agi).plus(state.stats.end).plus(state.stats.wil);
   const earnedHaki = totalStats.divide(100).times(0.01);
   const newHakiMultiplier = state.hakiMultiplier.plus(earnedHaki);
 
+  const currentFruit = state.devilFruit;
+  const nextWorldFruits = [...state.worldFruits];
+  const nextLockedFruits: string[] = [];
+
+  nextWorldFruits.push(...state.lockedFruits);
+
+  if (currentFruit) {
+    if (endingId?.includes('death')) {
+      nextWorldFruits.push(currentFruit);
+    } else if (endingId?.includes('capture')) {
+      nextLockedFruits.push(currentFruit);
+    }
+  }
+
   const freshState = createInitialState();
-
   Object.assign(state, freshState);
-
+  
   state.era = oldEra + 1;
   state.endings = oldEndings;
   state.heirlooms = Array.from(oldHeirlooms);
   state.hakiMultiplier = newHakiMultiplier;
+  state.worldFruits = nextWorldFruits;
+  state.lockedFruits = nextLockedFruits;
+  state.lastTick = Date.now();
 };

@@ -6,16 +6,18 @@ import { chapters } from './data/chapters';
 import { crewList } from './data/crew';
 import { expeditions } from './data/expeditions';
 import { endingsMeta } from './engine/prestige';
+import { skills } from './data/skills';
+import { fruits } from './data/fruits';
 import type { Choice } from './data/chapters';
 import { dispatchCommand } from './engine/loop';
 import styles from './App.module.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState<
-    'story' | 'training' | 'crew' | 'settings'
+    'story' | 'training' | 'abilities' | 'crew' | 'settings'
   >('story');
 
-  const isDead = useGameStore((s) => s.isDead);
+  const isDead = useGameStore((state) => state.isDead);
 
   if (isDead) {
     return <DeathScreen />;
@@ -28,7 +30,9 @@ function App() {
           type="button"
           onClick={() => setActiveTab('story')}
           aria-pressed={activeTab === 'story'}
-          className={activeTab === 'story' ? styles.activeTab : ''}
+          className={
+            activeTab === 'story' ? styles.activeTab : ''
+          }
         >
           Story
         </button>
@@ -37,16 +41,31 @@ function App() {
           type="button"
           onClick={() => setActiveTab('training')}
           aria-pressed={activeTab === 'training'}
-          className={activeTab === 'training' ? styles.activeTab : ''}
+          className={
+            activeTab === 'training' ? styles.activeTab : ''
+          }
         >
           Training
         </button>
 
         <button
           type="button"
+          onClick={() => setActiveTab('abilities')}
+          aria-pressed={activeTab === 'abilities'}
+          className={
+            activeTab === 'abilities' ? styles.activeTab : ''
+          }
+        >
+          Abilities
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('crew')}
           aria-pressed={activeTab === 'crew'}
-          className={activeTab === 'crew' ? styles.activeTab : ''}
+          className={
+            activeTab === 'crew' ? styles.activeTab : ''
+          }
         >
           Crew
         </button>
@@ -55,7 +74,9 @@ function App() {
           type="button"
           onClick={() => setActiveTab('settings')}
           aria-pressed={activeTab === 'settings'}
-          className={activeTab === 'settings' ? styles.activeTab : ''}
+          className={
+            activeTab === 'settings' ? styles.activeTab : ''
+          }
         >
           Settings
         </button>
@@ -64,6 +85,7 @@ function App() {
       <main className={styles.content}>
         {activeTab === 'story' && <StoryTab />}
         {activeTab === 'training' && <TrainingTab />}
+        {activeTab === 'abilities' && <AbilitiesTab />}
         {activeTab === 'crew' && <CrewTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </main>
@@ -72,14 +94,21 @@ function App() {
 }
 
 function DeathScreen() {
-  const lastEnding = useGameStore((s) => s.lastEnding);
-  const confirmInheritWill = useGameStore((s) => s.confirmInheritWill);
-  const hakiMultiplier = useGameStore((s) =>
-    formatDecimal(s.hakiMultiplier, 3),
-  );
-  const era = useGameStore((s) => s.era);
+  const lastEnding = useGameStore((state) => state.lastEnding);
 
-  const endingInfo = lastEnding ? endingsMeta[lastEnding] : null;
+  const confirmInheritWill = useGameStore(
+    (state) => state.confirmInheritWill,
+  );
+
+  const hakiMultiplier = useGameStore((state) =>
+    formatDecimal(state.hakiMultiplier, 3),
+  );
+
+  const era = useGameStore((state) => state.era);
+
+  const endingInfo = lastEnding
+    ? endingsMeta[lastEnding]
+    : null;
 
   return (
     <main className={styles.deathScreen}>
@@ -91,12 +120,15 @@ function DeathScreen() {
             <h2>{endingInfo.name}</h2>
 
             <p>
-              Heirloom Secured: <strong>{endingInfo.heirloom}</strong>
+              Heirloom Secured:{' '}
+              <strong>{endingInfo.heirloom}</strong>
             </p>
           </div>
         )}
 
-        <blockquote>"A man's dream will never die."</blockquote>
+        <blockquote>
+          "A man's dream will never die."
+        </blockquote>
 
         <p>Entering Era {era + 1}</p>
 
@@ -104,7 +136,10 @@ function DeathScreen() {
           Inherited Haki Multiplier: +{hakiMultiplier}
         </p>
 
-        <button type="button" onClick={confirmInheritWill}>
+        <button
+          type="button"
+          onClick={confirmInheritWill}
+        >
           Inherit Will
         </button>
       </section>
@@ -113,20 +148,53 @@ function DeathScreen() {
 }
 
 function StoryTab() {
-  const chapterProgress = useGameStore((s) => s.chapterProgress);
-  const currentChapterId = useGameStore((s) => s.currentChapter);
-  const chapter = chapters.find((c) => c.id === currentChapterId);
-  const makeChoice = useGameStore((s) => s.makeChoice);
-
-  const marineRep = useGameStore((s) => s.factions.marine);
-  const pirateRep = useGameStore((s) => s.factions.pirate);
-  const revRep = useGameStore((s) => s.factions.revolutionary);
-  const infamyText = useGameStore((s) =>
-    formatDecimal(s.factions.infamy, 0),
+  const chapterProgress = useGameStore(
+    (state) => state.chapterProgress,
   );
 
-  const doubleAgentUnlocked = useGameStore((s) => s.doubleAgentUnlocked);
-  const doubleAgentActive = useGameStore((s) => s.doubleAgentActive);
+  const currentChapterId = useGameStore(
+    (state) => state.currentChapter,
+  );
+
+  const chapter = chapters.find(
+    (currentChapter) =>
+      currentChapter.id === currentChapterId,
+  );
+
+  const makeChoice = useGameStore(
+    (state) => state.makeChoice,
+  );
+
+  const marineRep = useGameStore(
+    (state) => state.factions.marine,
+  );
+
+  const pirateRep = useGameStore(
+    (state) => state.factions.pirate,
+  );
+
+  const revRep = useGameStore(
+    (state) => state.factions.revolutionary,
+  );
+
+  const infamyText = useGameStore((state) =>
+    formatDecimal(state.factions.infamy, 0),
+  );
+
+  const doubleAgentUnlocked = useGameStore(
+    (state) => state.doubleAgentUnlocked,
+  );
+
+  const doubleAgentActive = useGameStore(
+    (state) => state.doubleAgentActive,
+  );
+
+  const getStatVal = (
+    stat: NonNullable<Choice['requirement']>['stat'],
+  ): number => {
+    const stats = useGameStore.getState().stats;
+    return stats[stat].toNumber();
+  };
 
   if (!chapter) {
     return (
@@ -136,19 +204,17 @@ function StoryTab() {
     );
   }
 
-  const getStatVal = (stat: Choice['requirement'] extends undefined
-    ? never
-    : NonNullable<Choice['requirement']>['stat']): number => {
-    const stats = useGameStore.getState().stats;
-    return stats[stat].toNumber();
-  };
-
   const toggleDoubleAgent = () => {
     dispatchCommand((state) => {
-      state.doubleAgentActive = !state.doubleAgentActive;
+      state.doubleAgentActive =
+        !state.doubleAgentActive;
 
       if (state.doubleAgentActive) {
-        state.lockedFactions = ['pirate', 'marine'];
+        state.lockedFactions = [
+          'pirate',
+          'marine',
+        ];
+
         state.factions.pirate = 50;
         state.factions.marine = 50;
       } else {
@@ -165,45 +231,62 @@ function StoryTab() {
         Arc {chapter.arc} - {chapter.title}
       </h2>
 
-      <p className={styles.description}>{chapter.description}</p>
+      <p className={styles.description}>
+        {chapter.description}
+      </p>
 
       {chapter.speaker && chapter.voiceLine && (
         <p className={styles.voiceLine}>
-          <strong>{chapter.speaker}:</strong> "{chapter.voiceLine}"
+          <strong>{chapter.speaker}:</strong>{' '}
+          "{chapter.voiceLine}"
         </p>
       )}
 
-      {chapterProgress === 0 && chapter.choices.length > 0 && (
-        <div className={styles.choices}>
-          {chapter.choices.map((choice: Choice) => {
-            const disabled =
-              choice.requirement !== undefined &&
-              getStatVal(choice.requirement.stat) <
-                choice.requirement.value;
+      {chapterProgress === 0 &&
+        chapter.choices.length > 0 && (
+          <div className={styles.choices}>
+            {chapter.choices.map((choice: Choice) => {
+              const disabled =
+                choice.requirement !== undefined &&
+                getStatVal(choice.requirement.stat) <
+                  choice.requirement.value;
 
-            return (
-              <button
-                key={choice.id}
-                type="button"
-                onClick={() => makeChoice(choice.id)}
-                disabled={disabled}
-                className={styles.choiceButton}
-              >
-                {choice.text}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={choice.id}
+                  type="button"
+                  onClick={() =>
+                    makeChoice(choice.id)
+                  }
+                  disabled={disabled}
+                  className={styles.choiceButton}
+                >
+                  {choice.text}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+      {chapterProgress > 0 && (
+        <p>The die is cast.</p>
       )}
-
-      {chapterProgress > 0 && <p>The die is cast.</p>}
 
       <section className={styles.worldStanding}>
         <h3>World Standing</h3>
 
-        <p>Marine Reputation: {marineRep}</p>
-        <p>Pirate Reputation: {pirateRep}</p>
-        <p>Revolutionary Reputation: {revRep}</p>
+        <p>
+          Marine Reputation: {marineRep}
+        </p>
+
+        <p>
+          Pirate Reputation: {pirateRep}
+        </p>
+
+        <p>
+          Revolutionary Reputation: {revRep}
+        </p>
+
         <p>Infamy: {infamyText}</p>
       </section>
 
@@ -218,7 +301,9 @@ function StoryTab() {
             <strong> Activate Double-Agent</strong>
           </label>
 
-          <p>-50% passive stat gains while active.</p>
+          <p>
+            -50% passive stat gains while active.
+          </p>
         </section>
       )}
     </section>
@@ -226,15 +311,37 @@ function StoryTab() {
 }
 
 function TrainingTab() {
-  const str = useGameStore((s) => formatDecimal(s.stats.str, 1));
-  const agi = useGameStore((s) => formatDecimal(s.stats.agi, 1));
-  const end = useGameStore((s) => formatDecimal(s.stats.end, 1));
-  const wil = useGameStore((s) => formatDecimal(s.stats.wil, 1));
+  const str = useGameStore((state) =>
+    formatDecimal(state.stats.str, 1),
+  );
 
-  const stamina = useGameStore((s) => formatDecimal(s.stamina, 0));
-  const maxStamina = useGameStore((s) => formatDecimal(s.maxStamina, 0));
-  const train = useGameStore((s) => s.train);
-  const canTrain = useGameStore((s) => s.stamina.gte(10));
+  const agi = useGameStore((state) =>
+    formatDecimal(state.stats.agi, 1),
+  );
+
+  const end = useGameStore((state) =>
+    formatDecimal(state.stats.end, 1),
+  );
+
+  const wil = useGameStore((state) =>
+    formatDecimal(state.stats.wil, 1),
+  );
+
+  const stamina = useGameStore((state) =>
+    formatDecimal(state.stamina, 0),
+  );
+
+  const maxStamina = useGameStore((state) =>
+    formatDecimal(state.maxStamina, 0),
+  );
+
+  const train = useGameStore(
+    (state) => state.train,
+  );
+
+  const canTrain = useGameStore((state) =>
+    state.stamina.gte(10),
+  );
 
   return (
     <section className={styles.section}>
@@ -248,6 +355,7 @@ function TrainingTab() {
       <div className={styles.trainingStats}>
         <div>
           <p>Strength: {str}</p>
+
           <button
             type="button"
             onClick={() => train('str')}
@@ -259,6 +367,7 @@ function TrainingTab() {
 
         <div>
           <p>Agility: {agi}</p>
+
           <button
             type="button"
             onClick={() => train('agi')}
@@ -270,6 +379,7 @@ function TrainingTab() {
 
         <div>
           <p>Endurance: {end}</p>
+
           <button
             type="button"
             onClick={() => train('end')}
@@ -281,6 +391,7 @@ function TrainingTab() {
 
         <div>
           <p>Willpower: {wil}</p>
+
           <button
             type="button"
             onClick={() => train('wil')}
@@ -294,21 +405,198 @@ function TrainingTab() {
   );
 }
 
-function CrewTab() {
-  const unlockedCrewIds = useGameStore((s) => s.unlockedCrew);
-  const activeExpeditions = useGameStore((s) => s.activeExpeditions);
-  const inventory = useGameStore((s) => s.inventory);
-  const startExpedition = useGameStore((s) => s.startExpedition);
-  const claimExpedition = useGameStore((s) => s.claimExpedition);
-
-  const [selectedExp, setSelectedExp] = useState(
-    expeditions[0]?.id ?? '',
+function AbilitiesTab() {
+  const unlockedSkills = useGameStore(
+    (state) => state.unlockedSkills,
   );
-  const [selectedCrew, setSelectedCrew] = useState('');
-  const [, setCurrentTime] = useState(Date.now());
 
-  const availableCrew = crewList.filter((crew) =>
-    unlockedCrewIds.includes(crew.id),
+  const haki = useGameStore(
+    (state) => state.haki,
+  );
+
+  const devilFruitId = useGameStore(
+    (state) => state.devilFruit,
+  );
+
+  const inventory = useGameStore(
+    (state) => state.inventory,
+  );
+
+  const eatFruit = useGameStore(
+    (state) => state.eatFruit,
+  );
+
+  const activeFruit = fruits.find(
+    (fruit) => fruit.id === devilFruitId,
+  );
+
+  const edibleFruits = fruits.filter((fruit) => {
+    const amount = inventory[fruit.id];
+
+    return amount !== undefined && amount.gte(1);
+  });
+
+  return (
+    <section className={styles.section}>
+      <h2>Abilities</h2>
+
+      <section className={styles.card}>
+        <h3>Devil Fruit</h3>
+
+        {activeFruit ? (
+          <>
+            <h4>{activeFruit.name}</h4>
+
+            <p>{activeFruit.description}</p>
+
+            <p>
+              Combat Multiplier:{' '}
+              {activeFruit.multiplier}x
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              You are a standard human. The sea does
+              not hate you.
+            </p>
+
+            {edibleFruits.length > 0 && (
+              <>
+                <h4>
+                  Uneaten Fruits in Inventory
+                </h4>
+
+                <div>
+                  {edibleFruits.map((fruit) => (
+                    <article
+                      key={fruit.id}
+                      className={styles.card}
+                    >
+                      <h4>{fruit.name}</h4>
+
+                      <p>
+                        {fruit.description}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          eatFruit(fruit.id)
+                        }
+                      >
+                        Eat
+                      </button>
+                    </article>
+                  ))}
+                </div>
+
+                <p>
+                  Warning: You can only eat one. The
+                  sea will forever reject you.
+                </p>
+              </>
+            )}
+          </>
+        )}
+      </section>
+
+      <section className={styles.card}>
+        <h3>Skills</h3>
+
+        {unlockedSkills.length === 0 ? (
+          <p>
+            Push your core stats higher to awaken
+            combat skills.
+          </p>
+        ) : (
+          unlockedSkills.map((skillId) => {
+            const skill = skills.find(
+              (entry) => entry.id === skillId,
+            );
+
+            if (!skill) {
+              return null;
+            }
+
+            return (
+              <article
+                key={skill.id}
+                className={styles.card}
+              >
+                <h4>{skill.name}</h4>
+
+                <p>{skill.description}</p>
+              </article>
+            );
+          })
+        )}
+      </section>
+
+      {(haki.observation > 0 ||
+        haki.armament > 0 ||
+        haki.conqueror) && (
+        <section className={styles.card}>
+          <h3>Haki</h3>
+
+          {haki.observation > 0 && (
+            <p>
+              Observation Haki (Level{' '}
+              {haki.observation})
+            </p>
+          )}
+
+          {haki.armament > 0 && (
+            <p>
+              Armament Haki (Level{' '}
+              {haki.armament})
+            </p>
+          )}
+
+          {haki.conqueror && (
+            <p>
+              Conqueror's Haki
+              <br />
+              The disposition of a king.
+            </p>
+          )}
+        </section>
+      )}
+    </section>
+  );
+}
+
+function CrewTab() {
+  const unlockedCrewIds = useGameStore(
+    (state) => state.unlockedCrew,
+  );
+
+  const activeExpeditions = useGameStore(
+    (state) => state.activeExpeditions,
+  );
+
+  const inventory = useGameStore(
+    (state) => state.inventory,
+  );
+
+  const startExpedition = useGameStore(
+    (state) => state.startExpedition,
+  );
+
+  const claimExpedition = useGameStore(
+    (state) => state.claimExpedition,
+  );
+
+  const [selectedExp, setSelectedExp] =
+    useState<string>(
+      expeditions[0]?.id ?? '',
+    );
+
+  const [selectedCrew, setSelectedCrew] =
+    useState<string>('');
+
+  const [, setCurrentTime] = useState(
+    Date.now(),
   );
 
   useEffect(() => {
@@ -316,13 +604,25 @@ function CrewTab() {
       setCurrentTime(Date.now());
     }, 1000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
 
-  const handleStart = () => {
-    if (!selectedExp || !selectedCrew) return;
+  const availableCrew = crewList.filter(
+    (crew) => unlockedCrewIds.includes(crew.id),
+  );
 
-    startExpedition(selectedExp, selectedCrew);
+  const handleStart = () => {
+    if (!selectedExp || !selectedCrew) {
+      return;
+    }
+
+    startExpedition(
+      selectedExp,
+      selectedCrew,
+    );
+
     setSelectedCrew('');
   };
 
@@ -332,13 +632,16 @@ function CrewTab() {
 
       {availableCrew.length === 0 ? (
         <p>
-          No crew members recruited yet. Advance the story to find
-          allies.
+          No crew members recruited yet. Advance the
+          story to find allies.
         </p>
       ) : (
-        <div>
+        <div className={styles.crewList}>
           {availableCrew.map((crew) => (
-            <article key={crew.id} className={styles.card}>
+            <article
+              key={crew.id}
+              className={styles.card}
+            >
               <h3>
                 {crew.name} - {crew.title}
               </h3>
@@ -346,8 +649,11 @@ function CrewTab() {
               <p>{crew.description}</p>
 
               <p>
-                Passive: +{crew.passiveMultiplier.value * 100}% to{' '}
-                {crew.passiveMultiplier.stat.toUpperCase()} gain
+                Passive: +
+                {crew.passiveMultiplier.value * 100}
+                % to{' '}
+                {crew.passiveMultiplier.stat.toUpperCase()}{' '}
+                gain
               </p>
             </article>
           ))}
@@ -358,15 +664,22 @@ function CrewTab() {
         <section>
           <h3>Expeditions</h3>
 
-          <div>
+          <div className={styles.settingsRow}>
             <label>
               Expedition
               <select
                 value={selectedExp}
-                onChange={(event) => setSelectedExp(event.target.value)}
+                onChange={(event) =>
+                  setSelectedExp(
+                    event.target.value,
+                  )
+                }
               >
                 {expeditions.map((expedition) => (
-                  <option key={expedition.id} value={expedition.id}>
+                  <option
+                    key={expedition.id}
+                    value={expedition.id}
+                  >
                     {expedition.name}
                   </option>
                 ))}
@@ -377,12 +690,21 @@ function CrewTab() {
               Crew
               <select
                 value={selectedCrew}
-                onChange={(event) => setSelectedCrew(event.target.value)}
+                onChange={(event) =>
+                  setSelectedCrew(
+                    event.target.value,
+                  )
+                }
               >
-                <option value="">Select crew</option>
+                <option value="">
+                  Select crew
+                </option>
 
                 {availableCrew.map((crew) => (
-                  <option key={crew.id} value={crew.id}>
+                  <option
+                    key={crew.id}
+                    value={crew.id}
+                  >
                     {crew.name}
                   </option>
                 ))}
@@ -392,61 +714,80 @@ function CrewTab() {
             <button
               type="button"
               onClick={handleStart}
-              disabled={!selectedExp || !selectedCrew}
+              disabled={
+                !selectedExp || !selectedCrew
+              }
             >
               Dispatch
             </button>
           </div>
 
-          <div>
+          <div className={styles.crewList}>
             {activeExpeditions.length === 0 ? (
               <p>No active expeditions.</p>
             ) : (
-              activeExpeditions.map((activeExpedition) => {
-                const expedition = expeditions.find(
-                  (exp) => exp.id === activeExpedition.id,
-                );
+              activeExpeditions.map(
+                (activeExpedition) => {
+                  const expedition =
+                    expeditions.find(
+                      (entry) =>
+                        entry.id ===
+                        activeExpedition.id,
+                    );
 
-                const crew = crewList.find(
-                  (member) => member.id === activeExpedition.crewId,
-                );
+                  const crew = crewList.find(
+                    (member) =>
+                      member.id ===
+                      activeExpedition.crewId,
+                  );
 
-                const remaining = Math.max(
-                  0,
-                  Math.ceil(
-                    (activeExpedition.completeAt - Date.now()) / 1000,
-                  ),
-                );
+                  const remaining = Math.max(
+                    0,
+                    Math.ceil(
+                      (activeExpedition.completeAt -
+                        Date.now()) /
+                        1000,
+                    ),
+                  );
 
-                const isDone = remaining === 0;
+                  const isDone = remaining === 0;
 
-                return (
-                  <article
-                    key={`${activeExpedition.id}-${activeExpedition.crewId}`}
-                    className={styles.card}
-                  >
-                    <h4>{expedition?.name ?? 'Unknown Expedition'}</h4>
+                  return (
+                    <article
+                      key={`${activeExpedition.id}-${activeExpedition.crewId}`}
+                      className={styles.card}
+                    >
+                      <h4>
+                        {expedition?.name ??
+                          'Unknown Expedition'}
+                      </h4>
 
-                    <p>
-                      Assigned:{' '}
-                      {crew?.name ?? activeExpedition.crewId}
-                    </p>
+                      <p>
+                        Assigned:{' '}
+                        {crew?.name ??
+                          activeExpedition.crewId}
+                      </p>
 
-                    {isDone ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          claimExpedition(activeExpedition.id)
-                        }
-                      >
-                        Claim Rewards
-                      </button>
-                    ) : (
-                      <p>Returns in: {remaining}s</p>
-                    )}
-                  </article>
-                );
-              })
+                      {isDone ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            claimExpedition(
+                              activeExpedition.id,
+                            )
+                          }
+                        >
+                          Claim Rewards
+                        </button>
+                      ) : (
+                        <p>
+                          Returns in: {remaining}s
+                        </p>
+                      )}
+                    </article>
+                  );
+                },
+              )
             )}
           </div>
         </section>
@@ -459,11 +800,14 @@ function CrewTab() {
           <p>Cargo hold is empty.</p>
         ) : (
           <div>
-            {Object.entries(inventory).map(([itemId, amount]) => (
-              <p key={itemId}>
-                {itemId.toUpperCase()}: {formatDecimal(amount, 0)}
-              </p>
-            ))}
+            {Object.entries(inventory).map(
+              ([itemId, amount]) => (
+                <p key={itemId}>
+                  {itemId.toUpperCase()}:{' '}
+                  {formatDecimal(amount, 0)}
+                </p>
+              ),
+            )}
           </div>
         )}
       </section>
