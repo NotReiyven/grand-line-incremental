@@ -1,0 +1,71 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.bottomNav {
+  display: flex;
+  justify-content: space-around;
+  background-color: #1a1a1a;
+  padding: var(--spacing-sm);
+  padding-bottom: env(safe-area-inset-bottom, var(--spacing-md));
+  border-top: 1px solid var(--color-paper);
+}
+
+.navButton {
+  background: none;
+  border: none;
+  color: var(--color-paper);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: color var(--transition-speed);
+}
+
+.navButtonActive {
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.card {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-paper);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.btn {
+  background-color: var(--color-marine);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  margin-top: var(--spacing-sm);
+  transition: opacity var(--transition-speed);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settingsRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}

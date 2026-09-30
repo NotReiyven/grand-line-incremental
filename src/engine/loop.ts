@@ -1,0 +1,100 @@
+import { GameState } from './types';
+import Decimal from 'break_eternity.js';
+import { saveGame } from './save';
+
+export const TICK_RATE = 10;
+export const MS_PER_TICK = 1000 / TICK_RATE;
+export const MAX_OFFLINE_SECONDS = 1209600; // 14 days
+
+let accumulator = 0;
+let lastTime = performance.now();
+let running = false;
+let animationFrameId: number;
+let saveIntervalId: number;
+
+type SyncCallback = (state: GameState) => void;
+let onSync: SyncCallback | null = null;
+let currentState: GameState;
+
+export const initEngine = (initialState: GameState, syncCallback: SyncCallback) => {
+  currentState = initialState;
+  onSync = syncCallback;
+  
+  const now = Date.now();
+  const offlineSeconds = Math.min((now - currentState.lastTick) / 1000, MAX_OFFLINE_SECONDS);
+  
+  if (offlineSeconds > 0) {
+    catchUpOffline(offlineSeconds);
+  }
+  
+  currentState.lastTick = now;
+  lastTime = performance.now();
+};
+
+const catchUpOffline = (seconds: number) => {
+  const staminaGain = new Decimal(seconds);
+  currentState.stamina = Decimal.min(currentState.stamina.plus(staminaGain), currentState.maxStamina);
+  
+  // Faction decay: 1 real-time hour = 1 point decay toward 0
+  const decayAmount = Math.floor(seconds / 3600);
+  if (decayAmount > 0) {
+    currentState.factions.marine = applyDecay(currentState.factions.marine, decayAmount);
+    currentState.factions.pirate = applyDecay(currentState.factions.pirate, decayAmount);
+    currentState.factions.revolutionary = applyDecay(currentState.factions.revolutionary, decayAmount);
+  }
+};
+
+const applyDecay = (val: number, decay: number): number => {
+  if (val > 0) return Math.max(0, val - decay);
+  if (val < 0) return Math.min(0, val + decay);
+  return 0;
+};
+
+const tick = () => {
+  currentState.stamina = Decimal.min(currentState.stamina.plus(0.1), currentState.maxStamina);
+};
+
+const update = (time: number) => {
+  if (!running) return;
+  
+  const deltaTime = time - lastTime;
+  lastTime = time;
+  accumulator += deltaTime;
+  
+  let ticked = false;
+  while (accumulator >= MS_PER_TICK) {
+    tick();
+    accumulator -= MS_PER_TICK;
+    ticked = true;
+  }
+  
+  if (ticked && onSync) {
+    currentState.lastTick = Date.now();
+    onSync(currentState);
+  }
+  
+  animationFrameId = requestAnimationFrame(update);
+};
+
+export const startEngine = () => {
+  if (running) return;
+  running = true;
+  lastTime = performance.now();
+  animationFrameId = requestAnimationFrame(update);
+  
+  saveIntervalId = window.setInterval(() => {
+    saveGame(currentState, 'grand_line_v1');
+    saveGame(currentState, 'grand_line_backup');
+  }, 60000);
+};
+
+export const stopEngine = () => {
+  running = false;
+  cancelAnimationFrame(animationFrameId);
+  clearInterval(saveIntervalId);
+};
+
+export const dispatchCommand = (action: (state: GameState) => void) => {
+  action(currentState);
+  if (onSync) onSync(currentState);
+};

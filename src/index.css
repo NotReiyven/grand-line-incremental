@@ -1,0 +1,39 @@
+:root {
+  --color-bg: #1a1814;
+  --color-paper: #eaddc5;
+  --color-ink: #2b2620;
+  --color-accent: #8b2626;
+  --color-marine: #29528f;
+  --color-pirate: #1a1a1a;
+  --color-rev: #732a2a;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --font-body: 'Georgia', serif;
+  --font-ui: system-ui, -apple-system, sans-serif;
+  
+  --transition-speed: 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-speed: 0s;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
