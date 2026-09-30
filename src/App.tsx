@@ -1,23 +1,123 @@
-import { useEffect, useState } from 'react';
-import { useGameStore } from './store/gameStore';
-import { useSettingsStore } from './store/settingsStore';
-import { formatDecimal } from './utils/math';
-import { chapters } from './data/chapters';
-import { crewList } from './data/crew';
-import { expeditions } from './data/expeditions';
-import { endingsMeta } from './engine/prestige';
-import { skills } from './data/skills';
-import { fruits } from './data/fruits';
-import type { Choice } from './data/chapters';
-import { dispatchCommand } from './engine/loop';
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  useGameStore,
+} from './store/gameStore';
+
+import {
+  useSettingsStore,
+} from './store/settingsStore';
+
+import {
+  formatDecimal,
+} from './utils/math';
+
+import {
+  chapters,
+} from './data/chapters';
+
+import {
+  crewList,
+} from './data/crew';
+
+import {
+  expeditions,
+} from './data/expeditions';
+
+import {
+  endingsMeta,
+} from './engine/prestige';
+
+import {
+  skills,
+} from './data/skills';
+
+import {
+  fruits,
+} from './data/fruits';
+
+import {
+  worldBosses,
+} from './data/bosses';
+
+import type {
+  Choice,
+} from './data/chapters';
+
+import {
+  dispatchCommand,
+} from './engine/loop';
+
 import styles from './App.module.css';
 
-function App() {
-  const [activeTab, setActiveTab] = useState<
-    'story' | 'training' | 'abilities' | 'crew' | 'settings'
-  >('story');
+type Tab =
+  | 'story'
+  | 'training'
+  | 'abilities'
+  | 'crew'
+  | 'world'
+  | 'settings';
 
-  const isDead = useGameStore((state) => state.isDead);
+const formatTime = (
+  totalSeconds: number,
+): string => {
+  const safe =
+    Math.max(
+      0,
+      Math.ceil(totalSeconds),
+    );
+
+  const hours =
+    Math.floor(safe / 3600);
+
+  const minutes =
+    Math.floor(
+      (safe % 3600) / 60,
+    );
+
+  const seconds =
+    safe % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes
+      .toString()
+      .padStart(2, '0')}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds
+      .toString()
+      .padStart(2, '0')}s`;
+  }
+
+  return `${seconds}s`;
+};
+
+const formatRep = (
+  value: number,
+): string => {
+  if (value > 0) {
+    return `+${value}`;
+  }
+
+  return value.toString();
+};
+
+function App() {
+  const [
+    activeTab,
+    setActiveTab,
+  ] = useState<Tab>('story');
+
+  const isDead =
+    useGameStore(
+      (state) =>
+        state.isDead,
+    );
 
   if (isDead) {
     return <DeathScreen />;
@@ -25,120 +125,459 @@ function App() {
 
   return (
     <div className={styles.app}>
-      <nav className={styles.nav}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('story')}
-          aria-pressed={activeTab === 'story'}
-          className={
-            activeTab === 'story' ? styles.activeTab : ''
+      <GameHeader />
+
+      <nav
+        className={styles.nav}
+        aria-label="Game navigation"
+      >
+        <TabButton
+          active={
+            activeTab === 'story'
+          }
+          onClick={() =>
+            setActiveTab('story')
           }
         >
           Story
-        </button>
+        </TabButton>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('training')}
-          aria-pressed={activeTab === 'training'}
-          className={
-            activeTab === 'training' ? styles.activeTab : ''
+        <TabButton
+          active={
+            activeTab === 'training'
+          }
+          onClick={() =>
+            setActiveTab('training')
           }
         >
           Training
-        </button>
+        </TabButton>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('abilities')}
-          aria-pressed={activeTab === 'abilities'}
-          className={
-            activeTab === 'abilities' ? styles.activeTab : ''
+        <TabButton
+          active={
+            activeTab === 'abilities'
+          }
+          onClick={() =>
+            setActiveTab(
+              'abilities',
+            )
           }
         >
           Abilities
-        </button>
+        </TabButton>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('crew')}
-          aria-pressed={activeTab === 'crew'}
-          className={
-            activeTab === 'crew' ? styles.activeTab : ''
+        <TabButton
+          active={
+            activeTab === 'crew'
+          }
+          onClick={() =>
+            setActiveTab('crew')
           }
         >
           Crew
-        </button>
+        </TabButton>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('settings')}
-          aria-pressed={activeTab === 'settings'}
-          className={
-            activeTab === 'settings' ? styles.activeTab : ''
+        <TabButton
+          active={
+            activeTab === 'world'
+          }
+          onClick={() =>
+            setActiveTab('world')
+          }
+        >
+          World
+        </TabButton>
+
+        <TabButton
+          active={
+            activeTab === 'settings'
+          }
+          onClick={() =>
+            setActiveTab(
+              'settings',
+            )
           }
         >
           Settings
-        </button>
+        </TabButton>
       </nav>
 
-      <main className={styles.content}>
-        {activeTab === 'story' && <StoryTab />}
-        {activeTab === 'training' && <TrainingTab />}
-        {activeTab === 'abilities' && <AbilitiesTab />}
-        {activeTab === 'crew' && <CrewTab />}
-        {activeTab === 'settings' && <SettingsTab />}
+      <main
+        className={styles.content}
+      >
+        {activeTab === 'story' && (
+          <StoryTab />
+        )}
+
+        {activeTab === 'training' && (
+          <TrainingTab />
+        )}
+
+        {activeTab === 'abilities' && (
+          <AbilitiesTab />
+        )}
+
+        {activeTab === 'crew' && (
+          <CrewTab />
+        )}
+
+        {activeTab === 'world' && (
+          <WorldTab />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsTab />
+        )}
       </main>
     </div>
   );
 }
 
-function DeathScreen() {
-  const lastEnding = useGameStore((state) => state.lastEnding);
+interface TabButtonProps {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}
 
-  const confirmInheritWill = useGameStore(
-    (state) => state.confirmInheritWill,
+function TabButton({
+  active,
+  onClick,
+  children,
+}: TabButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? styles.tabButtonActive
+          : styles.tabButton
+      }
+      aria-current={
+        active
+          ? 'page'
+          : undefined
+      }
+    >
+      {children}
+    </button>
   );
+}
 
-  const hakiMultiplier = useGameStore((state) =>
-    formatDecimal(state.hakiMultiplier, 3),
-  );
+function GameHeader() {
+  const era =
+    useGameStore(
+      (state) => state.era,
+    );
 
-  const era = useGameStore((state) => state.era);
+  const stamina =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stamina,
+          0,
+        ),
+    );
 
-  const endingInfo = lastEnding
-    ? endingsMeta[lastEnding]
-    : null;
+  const maxStamina =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.maxStamina,
+          0,
+        ),
+    );
+
+  const infamy =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.factions
+            .infamy,
+          0,
+        ),
+    );
+
+  const lastEvent =
+    useGameStore(
+      (state) =>
+        state.lastEvent,
+    );
+
+  const str =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.str,
+          0,
+        ),
+    );
+
+  const agi =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.agi,
+          0,
+        ),
+    );
+
+  const end =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.end,
+          0,
+        ),
+    );
+
+  const wil =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.wil,
+          0,
+        ),
+    );
 
   return (
-    <main className={styles.deathScreen}>
-      <section className={styles.section}>
-        <h1>Your Journey Ends</h1>
+    <header
+      className={styles.header}
+    >
+      <div
+        className={styles.headerTop}
+      >
+        <div>
+          <div
+            className={styles.eyebrow}
+          >
+            GRAND LINE
+          </div>
+
+          <h1
+            className={styles.title}
+          >
+            The Endless Voyage
+          </h1>
+        </div>
+
+        <div
+          className={styles.headerMeta}
+        >
+          <div
+            className={styles.metaItem}
+          >
+            <span>ERA</span>
+            <strong>{era}</strong>
+          </div>
+
+          <div
+            className={styles.metaItem}
+          >
+            <span>STAMINA</span>
+            <strong>
+              {stamina} / {maxStamina}
+            </strong>
+          </div>
+
+          <div
+            className={styles.metaItem}
+          >
+            <span>INFAMY</span>
+            <strong>{infamy}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={styles.eventBar}
+        aria-live="polite"
+      >
+        <span
+          className={styles.eventMark}
+        />
+
+        <span>{lastEvent}</span>
+      </div>
+
+      <div
+        className={styles.quickStats}
+      >
+        <HeaderStat
+          label="STR"
+          value={str}
+        />
+        <HeaderStat
+          label="AGI"
+          value={agi}
+        />
+        <HeaderStat
+          label="END"
+          value={end}
+        />
+        <HeaderStat
+          label="WIL"
+          value={wil}
+        />
+      </div>
+    </header>
+  );
+}
+
+function HeaderStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      className={styles.quickStat}
+    >
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function DeathScreen() {
+  const lastEnding =
+    useGameStore(
+      (state) =>
+        state.lastEnding,
+    );
+
+  const confirmInheritWill =
+    useGameStore(
+      (state) =>
+        state.confirmInheritWill,
+    );
+
+  const hakiMultiplier =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.hakiMultiplier,
+          3,
+        ),
+    );
+
+  const era =
+    useGameStore(
+      (state) => state.era,
+    );
+
+  const endings =
+    useGameStore(
+      (state) => state.endings,
+    );
+
+  const heirlooms =
+    useGameStore(
+      (state) =>
+        state.heirlooms,
+    );
+
+  const endingInfo =
+    lastEnding
+      ? endingsMeta[
+          lastEnding
+        ]
+      : null;
+
+  return (
+    <main
+      className={styles.deathScreen}
+    >
+      <section
+        className={styles.deathCard}
+      >
+        <div
+          className={
+            styles.deathEyebrow
+          }
+        >
+          ERA {era}
+        </div>
+
+        <h1>
+          Your Journey Ends
+        </h1>
 
         {endingInfo && (
-          <div className={styles.endingInfo}>
-            <h2>{endingInfo.name}</h2>
+          <div
+            className={
+              styles.endingPanel
+            }
+          >
+            <span>
+              FINAL CHAPTER
+            </span>
+            <h2>
+              {endingInfo.name}
+            </h2>
 
             <p>
-              Heirloom Secured:{' '}
-              <strong>{endingInfo.heirloom}</strong>
+              Heirloom secured
             </p>
+
+            <strong>
+              {endingInfo.heirloom}
+            </strong>
           </div>
         )}
 
-        <blockquote>
-          "A man's dream will never die."
+        <blockquote
+          className={
+            styles.deathQuote
+          }
+        >
+          A man's dream will
+          never die.
         </blockquote>
 
-        <p>Entering Era {era + 1}</p>
+        <div
+          className={
+            styles.deathStats
+          }
+        >
+          <div>
+            <span>
+              Inherited Haki
+            </span>
+            <strong>
+              +{hakiMultiplier}
+            </strong>
+          </div>
 
-        <p>
-          Inherited Haki Multiplier: +{hakiMultiplier}
-        </p>
+          <div>
+            <span>
+              Endings found
+            </span>
+            <strong>
+              {endings.length}
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Heirlooms
+            </span>
+            <strong>
+              {heirlooms.length}
+            </strong>
+          </div>
+        </div>
 
         <button
           type="button"
-          onClick={confirmInheritWill}
+          className={
+            styles.primaryButton
+          }
+          onClick={
+            confirmInheritWill
+          }
         >
           Inherit Will
         </button>
@@ -148,551 +587,1163 @@ function DeathScreen() {
 }
 
 function StoryTab() {
-  const chapterProgress = useGameStore(
-    (state) => state.chapterProgress,
-  );
+  const chapterProgress =
+    useGameStore(
+      (state) =>
+        state.chapterProgress,
+    );
 
-  const currentChapterId = useGameStore(
-    (state) => state.currentChapter,
-  );
+  const currentChapterId =
+    useGameStore(
+      (state) =>
+        state.currentChapter,
+    );
 
-  const chapter = chapters.find(
-    (currentChapter) =>
-      currentChapter.id === currentChapterId,
-  );
+  const chapter =
+    chapters.find(
+      (entry) =>
+        entry.id ===
+        currentChapterId,
+    );
 
-  const makeChoice = useGameStore(
-    (state) => state.makeChoice,
-  );
+  const makeChoice =
+    useGameStore(
+      (state) =>
+        state.makeChoice,
+    );
 
-  const marineRep = useGameStore(
-    (state) => state.factions.marine,
-  );
+  const marineRep =
+    useGameStore(
+      (state) =>
+        state.factions.marine,
+    );
 
-  const pirateRep = useGameStore(
-    (state) => state.factions.pirate,
-  );
+  const pirateRep =
+    useGameStore(
+      (state) =>
+        state.factions.pirate,
+    );
 
-  const revRep = useGameStore(
-    (state) => state.factions.revolutionary,
-  );
+  const revRep =
+    useGameStore(
+      (state) =>
+        state.factions
+          .revolutionary,
+    );
 
-  const infamyText = useGameStore((state) =>
-    formatDecimal(state.factions.infamy, 0),
-  );
+  const infamy =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.factions
+            .infamy,
+          0,
+        ),
+    );
 
-  const doubleAgentUnlocked = useGameStore(
-    (state) => state.doubleAgentUnlocked,
-  );
+  const doubleAgentUnlocked =
+    useGameStore(
+      (state) =>
+        state.doubleAgentUnlocked,
+    );
 
-  const doubleAgentActive = useGameStore(
-    (state) => state.doubleAgentActive,
-  );
-
-  const getStatVal = (
-    stat: NonNullable<Choice['requirement']>['stat'],
-  ): number => {
-    const stats = useGameStore.getState().stats;
-    return stats[stat].toNumber();
-  };
+  const doubleAgentActive =
+    useGameStore(
+      (state) =>
+        state.doubleAgentActive,
+    );
 
   if (!chapter) {
     return (
-      <section className={styles.section}>
-        <h2>The Story Continues...</h2>
-      </section>
+      <SectionCard>
+        <EmptyState>
+          The story continues beyond
+          the current chart.
+        </EmptyState>
+      </SectionCard>
     );
   }
 
-  const toggleDoubleAgent = () => {
-    dispatchCommand((state) => {
-      state.doubleAgentActive =
-        !state.doubleAgentActive;
+  const toggleDoubleAgent =
+    (): void => {
+      dispatchCommand(
+        (state) => {
+          if (
+            !state.doubleAgentActive
+          ) {
+            state.doubleAgentBackup =
+              {
+                pirate:
+                  state.factions
+                    .pirate,
+                marine:
+                  state.factions
+                    .marine,
+              };
 
-      if (state.doubleAgentActive) {
-        state.lockedFactions = [
-          'pirate',
-          'marine',
-        ];
+            state.doubleAgentActive =
+              true;
 
-        state.factions.pirate = 50;
-        state.factions.marine = 50;
-      } else {
-        state.lockedFactions = null;
-        state.factions.pirate = -50;
-        state.factions.marine = -50;
-      }
-    });
-  };
+            state.lockedFactions =
+              [
+                'pirate',
+                'marine',
+              ];
+
+            state.factions.pirate =
+              50;
+            state.factions.marine =
+              50;
+
+            state.lastEvent =
+              'Double-Agent identity activated. Pirate and Marine reputation is temporarily frozen.';
+            return;
+          }
+
+          if (
+            state.doubleAgentBackup
+          ) {
+            state.factions.pirate =
+              state.doubleAgentBackup
+                .pirate;
+
+            state.factions.marine =
+              state.doubleAgentBackup
+                .marine;
+          }
+
+          state.doubleAgentActive =
+            false;
+
+          state.doubleAgentBackup =
+            null;
+
+          state.lockedFactions =
+            null;
+
+          state.lastEvent =
+            'Double-Agent identity deactivated. Your original reputation returns.';
+        },
+      );
+    };
 
   return (
-    <section className={styles.section}>
-      <h2>
-        Arc {chapter.arc} - {chapter.title}
-      </h2>
+    <>
+      <section
+        className={styles.heroCard}
+      >
+        <div
+          className={
+            styles.sectionEyebrow
+          }
+        >
+          ARC {chapter.arc} · CHAPTER{' '}
+          {chapter.id}
+        </div>
 
-      <p className={styles.description}>
-        {chapter.description}
-      </p>
+        <h2>
+          {chapter.title}
+        </h2>
 
-      {chapter.speaker && chapter.voiceLine && (
-        <p className={styles.voiceLine}>
-          <strong>{chapter.speaker}:</strong>{' '}
-          "{chapter.voiceLine}"
+        <p
+          className={
+            styles.leadText
+          }
+        >
+          {chapter.description}
         </p>
-      )}
 
-      {chapterProgress === 0 &&
-        chapter.choices.length > 0 && (
-          <div className={styles.choices}>
-            {chapter.choices.map((choice: Choice) => {
-              const disabled =
-                choice.requirement !== undefined &&
-                getStatVal(choice.requirement.stat) <
-                  choice.requirement.value;
+        {chapter.speaker &&
+          chapter.voiceLine && (
+            <div
+              className={
+                styles.voiceLine
+              }
+            >
+              <strong>
+                {chapter.speaker}
+              </strong>
 
-              return (
-                <button
-                  key={choice.id}
-                  type="button"
-                  onClick={() =>
-                    makeChoice(choice.id)
-                  }
-                  disabled={disabled}
-                  className={styles.choiceButton}
-                >
-                  {choice.text}
-                </button>
-              );
-            })}
+              <span>
+                "{chapter.voiceLine}"
+              </span>
+            </div>
+          )}
+
+        {chapterProgress ===
+          0 &&
+          chapter.choices.length >
+            0 && (
+            <div
+              className={
+                styles.choiceList
+              }
+            >
+              {chapter.choices.map(
+                (
+                  choice: Choice,
+                ) => {
+                  const requirement =
+                    choice.requirement;
+
+                  const disabled =
+                    requirement !==
+                      undefined &&
+                    useGameStore
+                      .getState()
+                      .stats[
+                        requirement
+                          .stat
+                      ].lt(
+                        requirement.value,
+                      );
+
+                  return (
+                    <button
+                      key={
+                        choice.id
+                      }
+                      type="button"
+                      className={
+                        styles.choiceButton
+                      }
+                      onClick={() =>
+                        makeChoice(
+                          choice.id,
+                        )
+                      }
+                      disabled={
+                        disabled
+                      }
+                    >
+                      <span>
+                        {
+                          choice.text
+                        }
+                      </span>
+
+                      {requirement && (
+                        <small>
+                          Requires{' '}
+                          {
+                            requirement.value
+                          }{' '}
+                          {
+                            requirement.stat.toUpperCase()
+                          }
+                        </small>
+                      )}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+
+        {chapterProgress > 0 && (
+          <div
+            className={
+              styles.resolvedMessage
+            }
+          >
+            The decision is locked
+            in. The Log Pose turns
+            toward the next horizon.
           </div>
         )}
-
-      {chapterProgress > 0 && (
-        <p>The die is cast.</p>
-      )}
-
-      <section className={styles.worldStanding}>
-        <h3>World Standing</h3>
-
-        <p>
-          Marine Reputation: {marineRep}
-        </p>
-
-        <p>
-          Pirate Reputation: {pirateRep}
-        </p>
-
-        <p>
-          Revolutionary Reputation: {revRep}
-        </p>
-
-        <p>Infamy: {infamyText}</p>
       </section>
 
+      <SectionCard
+        title="World Standing"
+      >
+        <FactionBar
+          label="Pirate"
+          value={pirateRep}
+          className={
+            styles.pirateFill
+          }
+        />
+
+        <FactionBar
+          label="Marine"
+          value={marineRep}
+          className={
+            styles.marineFill
+          }
+        />
+
+        <FactionBar
+          label="Revolutionary"
+          value={revRep}
+          className={
+            styles.revolutionFill
+          }
+        />
+
+        <div
+          className={
+            styles.infamyRow
+          }
+        >
+          <span>
+            Infamy
+          </span>
+          <strong>
+            {infamy}
+          </strong>
+        </div>
+      </SectionCard>
+
       {doubleAgentUnlocked && (
-        <section className={styles.doubleAgent}>
-          <label>
+        <SectionCard>
+          <div
+            className={
+              styles.toggleRow
+            }
+          >
+            <div>
+              <strong>
+                Double-Agent
+              </strong>
+
+              <p>
+                Freeze Pirate and
+                Marine reputation while
+                cutting passive gains by
+                50%.
+              </p>
+            </div>
+
             <input
               type="checkbox"
-              checked={doubleAgentActive}
-              onChange={toggleDoubleAgent}
+              checked={
+                doubleAgentActive
+              }
+              onChange={
+                toggleDoubleAgent
+              }
             />
-            <strong> Activate Double-Agent</strong>
-          </label>
-
-          <p>
-            -50% passive stat gains while active.
-          </p>
-        </section>
+          </div>
+        </SectionCard>
       )}
-    </section>
+    </>
+  );
+}
+
+function FactionBar({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: number;
+  className: string;
+}) {
+  const width =
+    Math.min(
+      100,
+      Math.abs(value),
+    );
+
+  return (
+    <div
+      className={
+        styles.factionBar
+      }
+    >
+      <div
+        className={
+          styles.factionBarTop
+        }
+      >
+        <span>{label}</span>
+        <strong>
+          {formatRep(value)}
+        </strong>
+      </div>
+
+      <div
+        className={
+          styles.factionTrack
+        }
+      >
+        <div
+          className={`${styles.factionFill} ${className}`}
+          style={{
+            width: `${width}%`,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
 function TrainingTab() {
-  const str = useGameStore((state) =>
-    formatDecimal(state.stats.str, 1),
-  );
+  const str =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.str,
+          1,
+        ),
+    );
 
-  const agi = useGameStore((state) =>
-    formatDecimal(state.stats.agi, 1),
-  );
+  const agi =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.agi,
+          1,
+        ),
+    );
 
-  const end = useGameStore((state) =>
-    formatDecimal(state.stats.end, 1),
-  );
+  const end =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.end,
+          1,
+        ),
+    );
 
-  const wil = useGameStore((state) =>
-    formatDecimal(state.stats.wil, 1),
-  );
+  const wil =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stats.wil,
+          1,
+        ),
+    );
 
-  const stamina = useGameStore((state) =>
-    formatDecimal(state.stamina, 0),
-  );
+  const stamina =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.stamina,
+          0,
+        ),
+    );
 
-  const maxStamina = useGameStore((state) =>
-    formatDecimal(state.maxStamina, 0),
-  );
+  const maxStamina =
+    useGameStore(
+      (state) =>
+        formatDecimal(
+          state.maxStamina,
+          0,
+        ),
+    );
 
-  const train = useGameStore(
-    (state) => state.train,
-  );
+  const train =
+    useGameStore(
+      (state) => state.train,
+    );
 
-  const canTrain = useGameStore((state) =>
-    state.stamina.gte(10),
-  );
+  const canTrain =
+    useGameStore(
+      (state) =>
+        state.stamina.gte(10),
+    );
+
+  const stats = [
+    {
+      key: 'str' as const,
+      label: 'Strength',
+      value: str,
+      description:
+        'Raw force and direct combat power.',
+    },
+    {
+      key: 'agi' as const,
+      label: 'Agility',
+      value: agi,
+      description:
+        'Speed, footwork, and evasive movement.',
+    },
+    {
+      key: 'end' as const,
+      label: 'Endurance',
+      value: end,
+      description:
+        'Durability and maximum stamina growth.',
+    },
+    {
+      key: 'wil' as const,
+      label: 'Willpower',
+      value: wil,
+      description:
+        'Resolve, Haki potential, and mental resistance.',
+    },
+  ];
 
   return (
-    <section className={styles.section}>
-      <h2>Training Grounds</h2>
+    <>
+      <SectionCard>
+        <div
+          className={
+            styles.trainingHero
+          }
+        >
+          <div>
+            <div
+              className={
+                styles.sectionEyebrow
+              }
+            >
+              TRAINING GROUNDS
+            </div>
 
-      <p>
-        Stamina: <strong>{stamina}</strong> /{' '}
-        <strong>{maxStamina}</strong>
-      </p>
+            <h2>
+              Build the captain
+              you want to become.
+            </h2>
 
-      <div className={styles.trainingStats}>
-        <div>
-          <p>Strength: {str}</p>
+            <p>
+              Stamina regenerates
+              continuously. END also
+              expands your stamina
+              ceiling over time.
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => train('str')}
-            disabled={!canTrain}
+          <div
+            className={
+              styles.staminaDisplay
+            }
           >
-            Train STR
-          </button>
+            <span>
+              STAMINA
+            </span>
+            <strong>
+              {stamina}
+            </strong>
+            <small>
+              / {maxStamina}
+            </small>
+          </div>
         </div>
+      </SectionCard>
 
-        <div>
-          <p>Agility: {agi}</p>
-
-          <button
-            type="button"
-            onClick={() => train('agi')}
-            disabled={!canTrain}
+      <section
+        className={styles.statGrid}
+      >
+        {stats.map((stat) => (
+          <article
+            key={stat.key}
+            className={
+              styles.statCard
+            }
           >
-            Train AGI
-          </button>
-        </div>
+            <div
+              className={
+                styles.statCardHeader
+              }
+            >
+              <div>
+                <span>
+                  {stat.key.toUpperCase()}
+                </span>
 
-        <div>
-          <p>Endurance: {end}</p>
+                <h3>
+                  {stat.label}
+                </h3>
+              </div>
 
-          <button
-            type="button"
-            onClick={() => train('end')}
-            disabled={!canTrain}
-          >
-            Train END
-          </button>
-        </div>
+              <strong>
+                {stat.value}
+              </strong>
+            </div>
 
-        <div>
-          <p>Willpower: {wil}</p>
+            <p>
+              {stat.description}
+            </p>
 
-          <button
-            type="button"
-            onClick={() => train('wil')}
-            disabled={!canTrain}
-          >
-            Train WIL
-          </button>
-        </div>
-      </div>
-    </section>
+            <button
+              type="button"
+              className={
+                styles.primaryButton
+              }
+              onClick={() =>
+                train(stat.key)
+              }
+              disabled={!canTrain}
+            >
+              Train {stat.key.toUpperCase()}
+              <small>
+                10 stamina
+              </small>
+            </button>
+          </article>
+        ))}
+      </section>
+    </>
   );
 }
 
 function AbilitiesTab() {
-  const unlockedSkills = useGameStore(
-    (state) => state.unlockedSkills,
-  );
+  const game =
+    useGameStore();
 
-  const haki = useGameStore(
-    (state) => state.haki,
-  );
+  const eatFruit =
+    game.eatFruit;
 
-  const devilFruitId = useGameStore(
-    (state) => state.devilFruit,
-  );
+  const activeFruit =
+    fruits.find(
+      (fruit) =>
+        fruit.id ===
+        game.devilFruit,
+    );
 
-  const inventory = useGameStore(
-    (state) => state.inventory,
-  );
-
-  const eatFruit = useGameStore(
-    (state) => state.eatFruit,
-  );
-
-  const activeFruit = fruits.find(
-    (fruit) => fruit.id === devilFruitId,
-  );
-
-  const edibleFruits = fruits.filter((fruit) => {
-    const amount = inventory[fruit.id];
-
-    return amount !== undefined && amount.gte(1);
-  });
+  const availableFruitIds =
+    Array.from(
+      new Set([
+        ...game.worldFruits,
+        ...Object.keys(
+          game.inventory,
+        ).filter((id) =>
+          id.startsWith(
+            'fruit_',
+          ),
+        ),
+      ]),
+    );
 
   return (
-    <section className={styles.section}>
-      <h2>Abilities</h2>
-
-      <section className={styles.card}>
-        <h3>Devil Fruit</h3>
-
+    <>
+      <SectionCard
+        title="Devil Fruit"
+        subtitle="You only get one."
+      >
         {activeFruit ? (
-          <>
-            <h4>{activeFruit.name}</h4>
+          <div
+            className={
+              styles.activeAbility
+            }
+          >
+            <div>
+              <span>
+                CURRENT POWER
+              </span>
 
-            <p>{activeFruit.description}</p>
+              <h3>
+                {activeFruit.name}
+              </h3>
+            </div>
+
+            <strong>
+              {activeFruit.multiplier.toFixed(
+                2,
+              )}
+              x
+            </strong>
 
             <p>
-              Combat Multiplier:{' '}
-              {activeFruit.multiplier}x
+              {
+                activeFruit.description
+              }
             </p>
-          </>
+          </div>
         ) : (
-          <>
+          <div
+            className={
+              styles.emptyAbility
+            }
+          >
+            <strong>
+              Your body is still
+              ordinary.
+            </strong>
+
             <p>
-              You are a standard human. The sea does
-              not hate you.
+              Consume a discovered
+              Devil Fruit below to
+              permanently change your
+              combat multiplier.
             </p>
+          </div>
+        )}
 
-            {edibleFruits.length > 0 && (
-              <>
-                <h4>
-                  Uneaten Fruits in Inventory
-                </h4>
+        {!game.devilFruit &&
+          availableFruitIds.length >
+            0 && (
+            <div
+              className={
+                styles.cardGrid
+              }
+            >
+              {availableFruitIds.map(
+                (fruitId) => {
+                  const fruit =
+                    fruits.find(
+                      (entry) =>
+                        entry.id ===
+                        fruitId,
+                    );
 
-                <div>
-                  {edibleFruits.map((fruit) => (
+                  if (!fruit) {
+                    return null;
+                  }
+
+                  const inventoryAmount =
+                    game.inventory[
+                      fruitId
+                    ];
+
+                  const worldAmount =
+                    game.worldFruits.filter(
+                      (id) =>
+                        id ===
+                        fruitId,
+                    ).length;
+
+                  const amount =
+                    worldAmount +
+                    (inventoryAmount
+                      ?.toNumber() ??
+                      0);
+
+                  return (
                     <article
                       key={fruit.id}
-                      className={styles.card}
+                      className={
+                        styles.itemCard
+                      }
                     >
-                      <h4>{fruit.name}</h4>
+                      <div>
+                        <span>
+                          FOUND ×
+                          {amount}
+                        </span>
 
-                      <p>
-                        {fruit.description}
-                      </p>
+                        <h4>
+                          {fruit.name}
+                        </h4>
+
+                        <p>
+                          {
+                            fruit.description
+                          }
+                        </p>
+                      </div>
 
                       <button
                         type="button"
+                        className={
+                          styles.primaryButton
+                        }
                         onClick={() =>
-                          eatFruit(fruit.id)
+                          eatFruit(
+                            fruit.id,
+                          )
                         }
                       >
                         Eat
                       </button>
                     </article>
-                  ))}
-                </div>
+                  );
+                },
+              )}
+            </div>
+          )}
+      </SectionCard>
 
-                <p>
-                  Warning: You can only eat one. The
-                  sea will forever reject you.
-                </p>
-              </>
-            )}
-          </>
-        )}
-      </section>
-
-      <section className={styles.card}>
-        <h3>Skills</h3>
-
-        {unlockedSkills.length === 0 ? (
-          <p>
-            Push your core stats higher to awaken
-            combat skills.
-          </p>
-        ) : (
-          unlockedSkills.map((skillId) => {
-            const skill = skills.find(
-              (entry) => entry.id === skillId,
-            );
-
-            if (!skill) {
-              return null;
+      <SectionCard
+        title="Haki"
+        subtitle="Your spirit has a ceiling only until you break it."
+      >
+        <div
+          className={
+            styles.hakiGrid
+          }
+        >
+          <AbilityMeter
+            label="Observation"
+            value={
+              game.haki
+                .observation
             }
+            max={5}
+          />
+
+          <AbilityMeter
+            label="Armament"
+            value={
+              game.haki.armament
+            }
+            max={5}
+          />
+
+          <div
+            className={
+              game.haki.conqueror
+                ? styles.hakiCardUnlocked
+                : styles.hakiCard
+            }
+          >
+            <span>
+              CONQUEROR
+            </span>
+
+            <strong>
+              {game.haki
+                .conqueror
+                ? 'AWAKENED'
+                : 'DORMANT'}
+            </strong>
+
+            <p>
+              A rare disposition
+              associated with
+              overwhelming ambition.
+            </p>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Skills"
+        subtitle="Core-stat thresholds unlock permanent techniques."
+      >
+        <div
+          className={
+            styles.skillList
+          }
+        >
+          {skills.map((skill) => {
+            const unlocked =
+              game.unlockedSkills.includes(
+                skill.id,
+              );
+
+            const statValue =
+              game.stats[
+                skill.stat
+              ].toNumber();
+
+            const progress =
+              Math.min(
+                100,
+                (statValue /
+                  skill.threshold) *
+                  100,
+              );
 
             return (
               <article
                 key={skill.id}
-                className={styles.card}
+                className={
+                  unlocked
+                    ? styles.skillCardUnlocked
+                    : styles.skillCard
+                }
               >
-                <h4>{skill.name}</h4>
+                <div
+                  className={
+                    styles.skillHeader
+                  }
+                >
+                  <div>
+                    <span>
+                      {skill.stat.toUpperCase()}
+                    </span>
 
-                <p>{skill.description}</p>
+                    <h4>
+                      {skill.name}
+                    </h4>
+                  </div>
+
+                  <strong>
+                    {unlocked
+                      ? 'UNLOCKED'
+                      : `${formatDecimal(
+                          game.stats[
+                            skill.stat
+                          ],
+                          0,
+                        )} / ${skill.threshold}`}
+                  </strong>
+                </div>
+
+                <p>
+                  {skill.description}
+                </p>
+
+                <div
+                  className={
+                    styles.progressTrack
+                  }
+                >
+                  <div
+                    className={
+                      styles.progressFill
+                    }
+                    style={{
+                      width: `${progress}%`,
+                    }}
+                  />
+                </div>
               </article>
             );
-          })
-        )}
-      </section>
+          })}
+        </div>
+      </SectionCard>
+    </>
+  );
+}
 
-      {(haki.observation > 0 ||
-        haki.armament > 0 ||
-        haki.conqueror) && (
-        <section className={styles.card}>
-          <h3>Haki</h3>
+function AbilityMeter({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value: number;
+  max: number;
+}) {
+  const width =
+    Math.min(
+      100,
+      (value / max) * 100,
+    );
 
-          {haki.observation > 0 && (
-            <p>
-              Observation Haki (Level{' '}
-              {haki.observation})
-            </p>
-          )}
+  return (
+    <div
+      className={
+        styles.hakiCard
+      }
+    >
+      <span>
+        {label.toUpperCase()}
+      </span>
 
-          {haki.armament > 0 && (
-            <p>
-              Armament Haki (Level{' '}
-              {haki.armament})
-            </p>
-          )}
+      <strong>
+        Lv. {value}
+      </strong>
 
-          {haki.conqueror && (
-            <p>
-              Conqueror's Haki
-              <br />
-              The disposition of a king.
-            </p>
-          )}
-        </section>
-      )}
-    </section>
+      <div
+        className={
+          styles.progressTrack
+        }
+      >
+        <div
+          className={
+            styles.progressFill
+          }
+          style={{
+            width: `${width}%`,
+          }}
+        />
+      </div>
+
+      <p>
+        {value >= max
+          ? 'Mastered'
+          : 'Keep training to deepen your control.'}
+      </p>
+    </div>
   );
 }
 
 function CrewTab() {
-  const unlockedCrewIds = useGameStore(
-    (state) => state.unlockedCrew,
+  const game =
+    useGameStore();
+
+  const [
+    selectedExp,
+    setSelectedExp,
+  ] = useState(
+    expeditions[0]?.id ?? '',
   );
 
-  const activeExpeditions = useGameStore(
-    (state) => state.activeExpeditions,
-  );
+  const [
+    selectedCrew,
+    setSelectedCrew,
+  ] = useState('');
 
-  const inventory = useGameStore(
-    (state) => state.inventory,
-  );
+  const [, setCurrentTime] =
+    useState(Date.now());
 
-  const startExpedition = useGameStore(
-    (state) => state.startExpedition,
-  );
-
-  const claimExpedition = useGameStore(
-    (state) => state.claimExpedition,
-  );
-
-  const [selectedExp, setSelectedExp] =
-    useState<string>(
-      expeditions[0]?.id ?? '',
+  const availableCrew =
+    crewList.filter(
+      (crew) =>
+        game.unlockedCrew.includes(
+          crew.id,
+        ),
     );
 
-  const [selectedCrew, setSelectedCrew] =
-    useState<string>('');
-
-  const [, setCurrentTime] = useState(
-    Date.now(),
-  );
+  const busyCrewIds =
+    new Set(
+      game.activeExpeditions.map(
+        (entry) =>
+          entry.crewId,
+      ),
+    );
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
+    const interval =
+      window.setInterval(
+        () => {
+          setCurrentTime(
+            Date.now(),
+          );
+        },
+        1000,
+      );
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval,
+      );
     };
   }, []);
 
-  const availableCrew = crewList.filter(
-    (crew) => unlockedCrewIds.includes(crew.id),
-  );
+  const handleStart =
+    (): void => {
+      if (
+        !selectedExp ||
+        !selectedCrew
+      ) {
+        return;
+      }
 
-  const handleStart = () => {
-    if (!selectedExp || !selectedCrew) {
-      return;
-    }
+      game.startExpedition(
+        selectedExp,
+        selectedCrew,
+      );
 
-    startExpedition(
-      selectedExp,
-      selectedCrew,
-    );
-
-    setSelectedCrew('');
-  };
+      setSelectedCrew('');
+    };
 
   return (
-    <section className={styles.section}>
-      <h2>Crew Manifest</h2>
+    <>
+      <SectionCard
+        title="Crew Manifest"
+        subtitle="Your crew turns downtime into progress."
+      >
+        {availableCrew.length ===
+        0 ? (
+          <EmptyState>
+            No crew members recruited
+            yet. The story will bring
+            people aboard.
+          </EmptyState>
+        ) : (
+          <div
+            className={
+              styles.cardGrid
+            }
+          >
+            {availableCrew.map(
+              (crew) => (
+                <article
+                  key={crew.id}
+                  className={
+                    styles.itemCard
+                  }
+                >
+                  <div>
+                    <span>
+                      CREW
+                    </span>
 
-      {availableCrew.length === 0 ? (
-        <p>
-          No crew members recruited yet. Advance the
-          story to find allies.
-        </p>
-      ) : (
-        <div className={styles.crewList}>
-          {availableCrew.map((crew) => (
-            <article
-              key={crew.id}
-              className={styles.card}
-            >
-              <h3>
-                {crew.name} - {crew.title}
-              </h3>
+                    <h3>
+                      {crew.name}
+                    </h3>
 
-              <p>{crew.description}</p>
+                    <strong>
+                      {crew.title}
+                    </strong>
 
-              <p>
-                Passive: +
-                {crew.passiveMultiplier.value * 100}
-                % to{' '}
-                {crew.passiveMultiplier.stat.toUpperCase()}{' '}
-                gain
-              </p>
-            </article>
-          ))}
-        </div>
-      )}
+                    <p>
+                      {
+                        crew.description
+                      }
+                    </p>
 
-      {availableCrew.length > 0 && (
-        <section>
-          <h3>Expeditions</h3>
+                    <small>
+                      +{Math.round(
+                        crew
+                          .passiveMultiplier
+                          .value *
+                          100,
+                      )}
+                      %{' '}
+                      {crew
+                        .passiveMultiplier
+                        .stat
+                        .toUpperCase()}{' '}
+                      training gain
+                    </small>
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
+        )}
+      </SectionCard>
 
-          <div className={styles.settingsRow}>
+      <SectionCard
+        title="Expeditions"
+        subtitle="Send available crew away while you train."
+      >
+        {availableCrew.length >
+          0 && (
+          <div
+            className={
+              styles.expeditionControls
+            }
+          >
             <label>
-              Expedition
+              <span>
+                EXPEDITION
+              </span>
+
               <select
-                value={selectedExp}
-                onChange={(event) =>
+                value={
+                  selectedExp
+                }
+                onChange={(
+                  event,
+                ) =>
                   setSelectedExp(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
               >
-                {expeditions.map((expedition) => (
-                  <option
-                    key={expedition.id}
-                    value={expedition.id}
-                  >
-                    {expedition.name}
-                  </option>
-                ))}
+                {expeditions.map(
+                  (expedition) => (
+                    <option
+                      key={
+                        expedition.id
+                      }
+                      value={
+                        expedition.id
+                      }
+                    >
+                      {
+                        expedition.name
+                      }
+                    </option>
+                  ),
+                )}
               </select>
             </label>
 
             <label>
-              Crew
+              <span>
+                CREW
+              </span>
+
               <select
-                value={selectedCrew}
-                onChange={(event) =>
+                value={
+                  selectedCrew
+                }
+                onChange={(
+                  event,
+                ) =>
                   setSelectedCrew(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
               >
@@ -700,118 +1751,361 @@ function CrewTab() {
                   Select crew
                 </option>
 
-                {availableCrew.map((crew) => (
-                  <option
-                    key={crew.id}
-                    value={crew.id}
-                  >
-                    {crew.name}
-                  </option>
-                ))}
+                {availableCrew.map(
+                  (crew) => (
+                    <option
+                      key={
+                        crew.id
+                      }
+                      value={
+                        crew.id
+                      }
+                      disabled={busyCrewIds.has(
+                        crew.id,
+                      )}
+                    >
+                      {crew.name}
+                      {busyCrewIds.has(
+                        crew.id,
+                      )
+                        ? ' — away'
+                        : ''}
+                    </option>
+                  ),
+                )}
               </select>
             </label>
 
             <button
               type="button"
-              onClick={handleStart}
+              className={
+                styles.primaryButton
+              }
+              onClick={
+                handleStart
+              }
               disabled={
-                !selectedExp || !selectedCrew
+                !selectedExp ||
+                !selectedCrew
               }
             >
               Dispatch
             </button>
           </div>
+        )}
 
-          <div className={styles.crewList}>
-            {activeExpeditions.length === 0 ? (
-              <p>No active expeditions.</p>
-            ) : (
-              activeExpeditions.map(
-                (activeExpedition) => {
-                  const expedition =
-                    expeditions.find(
-                      (entry) =>
-                        entry.id ===
-                        activeExpedition.id,
-                    );
-
-                  const crew = crewList.find(
-                    (member) =>
-                      member.id ===
-                      activeExpedition.crewId,
+        <div
+          className={
+            styles.expeditionList
+          }
+        >
+          {game.activeExpeditions.length ===
+          0 ? (
+            <EmptyState>
+              No crews are currently
+              away.
+            </EmptyState>
+          ) : (
+            game.activeExpeditions.map(
+              (active) => {
+                const expedition =
+                  expeditions.find(
+                    (entry) =>
+                      entry.id ===
+                      active.id,
                   );
 
-                  const remaining = Math.max(
+                const crew =
+                  crewList.find(
+                    (entry) =>
+                      entry.id ===
+                      active.crewId,
+                  );
+
+                const remaining =
+                  Math.max(
                     0,
                     Math.ceil(
-                      (activeExpedition.completeAt -
+                      (active.completeAt -
                         Date.now()) /
                         1000,
                     ),
                   );
 
-                  const isDone = remaining === 0;
+                const complete =
+                  remaining === 0;
 
-                  return (
-                    <article
-                      key={`${activeExpedition.id}-${activeExpedition.crewId}`}
-                      className={styles.card}
-                    >
+                return (
+                  <article
+                    key={`${active.id}-${active.crewId}`}
+                    className={
+                      styles.expeditionCard
+                    }
+                  >
+                    <div>
+                      <span>
+                        AWAY
+                      </span>
+
                       <h4>
-                        {expedition?.name ??
-                          'Unknown Expedition'}
+                        {
+                          expedition?.name
+                        }
                       </h4>
 
                       <p>
                         Assigned:{' '}
-                        {crew?.name ??
-                          activeExpedition.crewId}
+                        {
+                          crew?.name ??
+                          active.crewId
+                        }
                       </p>
+                    </div>
 
-                      {isDone ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            claimExpedition(
-                              activeExpedition.id,
-                            )
-                          }
-                        >
-                          Claim Rewards
-                        </button>
-                      ) : (
-                        <p>
-                          Returns in: {remaining}s
-                        </p>
-                      )}
-                    </article>
-                  );
-                },
-              )
-            )}
-          </div>
-        </section>
-      )}
+                    {complete ? (
+                      <button
+                        type="button"
+                        className={
+                          styles.primaryButton
+                        }
+                        onClick={() =>
+                          game.claimExpedition(
+                            active.id,
+                          )
+                        }
+                      >
+                        Claim Rewards
+                      </button>
+                    ) : (
+                      <strong>
+                        {formatTime(
+                          remaining,
+                        )}
+                      </strong>
+                    )}
+                  </article>
+                );
+              },
+            )
+          )}
+        </div>
+      </SectionCard>
 
-      <section>
-        <h3>Ship Cargo</h3>
-
-        {Object.keys(inventory).length === 0 ? (
-          <p>Cargo hold is empty.</p>
+      <SectionCard
+        title="Ship Cargo"
+      >
+        {Object.keys(
+          game.inventory,
+        ).length === 0 ? (
+          <EmptyState>
+            Cargo hold is empty.
+          </EmptyState>
         ) : (
-          <div>
-            {Object.entries(inventory).map(
-              ([itemId, amount]) => (
-                <p key={itemId}>
-                  {itemId.toUpperCase()}:{' '}
-                  {formatDecimal(amount, 0)}
-                </p>
+          <div
+            className={
+              styles.inventoryGrid
+            }
+          >
+            {Object.entries(
+              game.inventory,
+            ).map(
+              ([
+                itemId,
+                amount,
+              ]) => (
+                <div
+                  key={itemId}
+                  className={
+                    styles.inventoryItem
+                  }
+                >
+                  <span>
+                    {itemId.replaceAll(
+                      '_',
+                      ' ',
+                    )}
+                  </span>
+
+                  <strong>
+                    {formatDecimal(
+                      amount,
+                      0,
+                    )}
+                  </strong>
+                </div>
               ),
             )}
           </div>
         )}
-      </section>
-    </section>
+      </SectionCard>
+    </>
+  );
+}
+
+function WorldTab() {
+  const game =
+    useGameStore();
+
+  const currentPower =
+    game.stats.str
+      .plus(game.stats.agi)
+      .plus(game.stats.end)
+      .plus(game.stats.wil);
+
+  return (
+    <>
+      <SectionCard
+        title="World Threats"
+        subtitle="Bosses are one-time tests with permanent rewards."
+      >
+        <div
+          className={
+            styles.worldPower
+          }
+        >
+          <span>
+            CURRENT COMBAT POWER
+          </span>
+
+          <strong>
+            {formatDecimal(
+              currentPower,
+              0,
+            )}
+          </strong>
+        </div>
+      </SectionCard>
+
+      <div
+        className={
+          styles.bossList
+        }
+      >
+        {worldBosses.map(
+          (boss) => {
+            const locked =
+              game.currentChapter <
+              boss.requiresChapter;
+
+            const defeated =
+              game.defeatedBosses.includes(
+                boss.id,
+              );
+
+            const best =
+              game
+                .highestBossDamage[
+                boss.id
+              ];
+
+            return (
+              <article
+                key={boss.id}
+                className={
+                  defeated
+                    ? styles.bossCardDefeated
+                    : styles.bossCard
+                }
+              >
+                <div
+                  className={
+                    styles.bossHeader
+                  }
+                >
+                  <div>
+                    <span>
+                      {locked
+                        ? `UNLOCKS IN CHAPTER ${boss.requiresChapter}`
+                        : defeated
+                          ? 'DEFEATED'
+                          : 'WORLD THREAT'}
+                    </span>
+
+                    <h3>
+                      {boss.name}
+                    </h3>
+                  </div>
+
+                  <strong>
+                    HP{' '}
+                    {formatDecimal(
+                      boss.hp,
+                      0,
+                    )}
+                  </strong>
+                </div>
+
+                <p>
+                  {
+                    boss.description
+                  }
+                </p>
+
+                <div
+                  className={
+                    styles.bossMeta
+                  }
+                >
+                  <span>
+                    Cost:{' '}
+                    {
+                      boss.staminaCost
+                    }{' '}
+                    stamina
+                  </span>
+
+                  <span>
+                    Reward:{' '}
+                    {
+                      boss.rewardText
+                    }
+                  </span>
+                </div>
+
+                {best && (
+                  <div
+                    className={
+                      styles.bossBest
+                    }
+                  >
+                    Best damage:{' '}
+                    {formatDecimal(
+                      best,
+                      0,
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className={
+                    styles.primaryButton
+                  }
+                  onClick={() =>
+                    game.challengeBoss(
+                      boss.id,
+                    )
+                  }
+                  disabled={
+                    locked ||
+                    defeated ||
+                    !game.stamina.gte(
+                      boss.staminaCost,
+                    )
+                  }
+                >
+                  {defeated
+                    ? 'Defeated'
+                    : locked
+                      ? 'Locked'
+                      : 'Challenge'}
+                </button>
+              </article>
+            );
+          },
+        )}
+      </div>
+    </>
   );
 }
 
@@ -823,39 +2117,165 @@ function SettingsTab() {
     toggleAudio,
     toggleHaptics,
     toggleMotion,
+    resetSave,
   } = useSettingsStore();
 
   return (
-    <section className={styles.section}>
-      <h2>Settings</h2>
+    <>
+      <SectionCard
+        title="Settings"
+        subtitle="Small controls that shape how the voyage feels."
+      >
+        <div
+          className={
+            styles.settingsList
+          }
+        >
+          <SettingRow
+            label="Audio"
+            description="Leave space for future sound effects without changing the game flow."
+            checked={audioEnabled}
+            onChange={
+              toggleAudio
+            }
+          />
 
-      <label className={styles.setting}>
-        <input
-          type="checkbox"
-          checked={audioEnabled}
-          onChange={toggleAudio}
-        />
-        Enable Audio
-      </label>
+          <SettingRow
+            label="Haptics"
+            description="Use short vibration feedback on supported devices."
+            checked={hapticsEnabled}
+            onChange={
+              toggleHaptics
+            }
+          />
 
-      <label className={styles.setting}>
-        <input
-          type="checkbox"
-          checked={hapticsEnabled}
-          onChange={toggleHaptics}
-        />
-        Enable Haptics
-      </label>
+          <SettingRow
+            label="Reduce motion"
+            description="Remove most interface transitions."
+            checked={
+              reduceMotion
+            }
+            onChange={
+              toggleMotion
+            }
+          />
+        </div>
+      </SectionCard>
 
-      <label className={styles.setting}>
-        <input
-          type="checkbox"
-          checked={reduceMotion}
-          onChange={toggleMotion}
-        />
-        Reduce Motion
-      </label>
+      <SectionCard
+        title="Danger Zone"
+        subtitle="This permanently clears your local voyage."
+      >
+        <button
+          type="button"
+          className={
+            styles.dangerButton
+          }
+          onClick={() => {
+            const confirmed =
+              window.confirm(
+                'Start a new voyage? This erases the current local save.',
+              );
+
+            if (confirmed) {
+              resetSave();
+            }
+          }}
+        >
+          Start New Voyage
+        </button>
+      </SectionCard>
+    </>
+  );
+}
+
+function SettingRow({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      className={
+        styles.settingRow
+      }
+    >
+      <div>
+        <strong>
+          {label}
+        </strong>
+
+        <p>
+          {description}
+        </p>
+      </div>
+
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+      />
+    </label>
+  );
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={
+        styles.sectionCard
+      }
+    >
+      {title && (
+        <div
+          className={
+            styles.sectionHeader
+          }
+        >
+          <div>
+            <h2>{title}</h2>
+
+            {subtitle && (
+              <p>
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {children}
     </section>
+  );
+}
+
+function EmptyState({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={
+        styles.emptyState
+      }
+    >
+      {children}
+    </div>
   );
 }
 

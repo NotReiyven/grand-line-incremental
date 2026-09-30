@@ -27,32 +27,48 @@ export interface HakiState {
   conqueror: boolean;
 }
 
+export interface DoubleAgentBackup {
+  pirate: number;
+  marine: number;
+}
+
 export interface GameState {
   stats: CoreStats;
   factions: FactionReputation;
   stamina: Decimal;
   maxStamina: Decimal;
   lastTick: number;
+
   chapterProgress: number;
   currentArc: number;
   currentChapter: number;
+
   doubleAgentUnlocked: boolean;
   doubleAgentActive: boolean;
+  doubleAgentBackup: DoubleAgentBackup | null;
   lockedFactions: [Faction, Faction] | null;
+
   era: number;
   endings: string[];
   heirlooms: string[];
   hakiMultiplier: Decimal;
+
   isDead: boolean;
   lastEnding?: string;
+
   unlockedCrew: string[];
   activeExpeditions: ActiveExpedition[];
-  inventory: Record;
-  
+  inventory: Record<string, Decimal>;
+
   unlockedSkills: string[];
   haki: HakiState;
+
   devilFruit: string | null;
   worldFruits: string[];
   lockedFruits: string[];
-  highestBossDamage: Record;
+
+  highestBossDamage: Record<string, Decimal>;
+  defeatedBosses: string[];
+
+  lastEvent: string;
 }

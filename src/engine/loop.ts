@@ -1,129 +1,168 @@
 import type { GameState } from './types';
-import Decimal from 'break_eternity.js';
-import { saveGame } from './save';
-import { fruits } from '../data/fruits';
+import { createInitialState } from './save';
 
-export const TICK_RATE = 10;
-export const MS_PER_TICK = 1000 / TICK_RATE;
-export const MAX_OFFLINE_SECONDS = 1209600; 
+interface EndingMeta {
+  name: string;
+  heirloom: string;
+}
 
-let accumulator = 0;
-let lastTime = performance.now();
-let running = false;
-let animationFrameId: number;
-let saveIntervalId: number;
+export const endingsMeta: Record<
+  string,
+  EndingMeta
+> = {
+  pirate_death: {
+    name: 'Going Down Swinging',
+    heirloom: 'Shattered Jolly Roger',
+  },
 
-type SyncCallback = (state: GameState) => void;
-let onSync: SyncCallback | null = null;
-let currentState: GameState;
+  marine_death: {
+    name: "A Traitor's End",
+    heirloom: "Admiral's Coat",
+  },
 
-export const initEngine = (initialState: GameState, syncCallback: SyncCallback) => {
-  currentState = initialState;
-  onSync = syncCallback;
-  const now = Date.now();
-  const offlineSeconds = Math.min((now - currentState.lastTick) / 1000, MAX_OFFLINE_SECONDS);
-  if (offlineSeconds > 0) catchUpOffline(offlineSeconds);
-  currentState.lastTick = now;
-  lastTime = performance.now();
+  marine_capture: {
+    name: 'Chained Hound',
+    heirloom: 'Seastone Cuffs',
+  },
+
+  pirate_capture: {
+    name: 'Impel Down Inmate',
+    heirloom: 'Tarnished Coin',
+  },
+
+  revolution_death: {
+    name: 'Silenced in the Dark',
+    heirloom: 'Ciphered Letter',
+  },
+
+  pirate_legacy: {
+    name: 'King Without a Crown',
+    heirloom: 'Weathered Straw Hat',
+  },
+
+  marine_legacy: {
+    name: 'Absolute Justice',
+    heirloom: 'White Coat',
+  },
+
+  revolution_legacy: {
+    name: "Voice of the Dawn",
+    heirloom: "Dawn's Standard",
+  },
 };
 
-const catchUpOffline = (seconds: number) => {
-  if (currentState.isDead) return;
-  currentState.stamina = Decimal.min(currentState.stamina.plus(seconds), currentState.maxStamina);
-  
-  const hakiMult = currentState.hakiMultiplier.plus(1);
-  const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
-  let fruitMult = 1;
-  
-  if (currentState.devilFruit) {
-    const activeFruit = fruits.find(f => f.id === currentState.devilFruit);
-    if (activeFruit) fruitMult = activeFruit.multiplier;
+export const triggerEnding = (
+  state: GameState,
+  endingId: string,
+): void => {
+  state.isDead = true;
+  state.lastEnding = endingId;
+
+  if (!state.endings.includes(endingId)) {
+    state.endings.push(endingId);
   }
-  
-  const passiveGain = new Decimal(seconds * 0.01 * paranoiaMult).times(hakiMult).times(fruitMult);
-  
-  currentState.stats.str = currentState.stats.str.plus(passiveGain);
-  currentState.stats.agi = currentState.stats.agi.plus(passiveGain);
-  currentState.stats.end = currentState.stats.end.plus(passiveGain);
-  currentState.stats.wil = currentState.stats.wil.plus(passiveGain);
 
-  const decayAmount = Math.floor(seconds / 3600);
-  if (decayAmount > 0 && !currentState.doubleAgentActive) {
-    currentState.factions.marine = applyDecay(currentState.factions.marine, decayAmount);
-    currentState.factions.pirate = applyDecay(currentState.factions.pirate, decayAmount);
-    currentState.factions.revolutionary = applyDecay(currentState.factions.revolutionary, decayAmount);
+  const ending =
+    endingsMeta[endingId];
+
+  state.lastEvent = ending
+    ? `${ending.name}. Your era has reached its end.`
+    : 'Your era has reached its end.';
+};
+
+export const inheritWill = (
+  state: GameState,
+): void => {
+  const endingId = state.lastEnding;
+
+  const ending = endingId
+    ? endingsMeta[endingId]
+    : undefined;
+
+  const newHeirloom =
+    ending?.heirloom;
+
+  const oldEra = state.era;
+  const oldEndings = [
+    ...state.endings,
+  ];
+
+  const oldHeirlooms = new Set(
+    state.heirlooms,
+  );
+
+  if (newHeirloom) {
+    oldHeirlooms.add(newHeirloom);
   }
-};
 
-const applyDecay = (val: number, decay: number): number => {
-  if (val > 0) return Math.max(0, val - decay);
-  if (val < 0) return Math.min(0, val + decay);
-  return 0;
-};
+  const totalStats = state.stats.str
+    .plus(state.stats.agi)
+    .plus(state.stats.end)
+    .plus(state.stats.wil);
 
-const tick = () => {
-  if (currentState.isDead) return;
-  currentState.stamina = Decimal.min(currentState.stamina.plus(0.1), currentState.maxStamina);
-  
-  const hakiMult = currentState.hakiMultiplier.plus(1);
-  const paranoiaMult = currentState.doubleAgentActive ? 0.5 : 1;
-  let fruitMult = 1;
+  const earnedHaki =
+    totalStats
+      .divide(100)
+      .times(0.01);
 
-  if (currentState.devilFruit) {
-    const activeFruit = fruits.find(f => f.id === currentState.devilFruit);
-    if (activeFruit) fruitMult = activeFruit.multiplier;
+  const newHakiMultiplier =
+    state.hakiMultiplier.plus(
+      earnedHaki,
+    );
+
+  const currentFruit =
+    state.devilFruit;
+
+  const nextWorldFruits = new Set(
+    state.worldFruits,
+  );
+
+  for (const fruit of state.lockedFruits) {
+    nextWorldFruits.add(fruit);
   }
-  
-  const passiveGain = new Decimal(0.01 * paranoiaMult).times(hakiMult).times(fruitMult);
-  
-  currentState.stats.str = currentState.stats.str.plus(passiveGain);
-  currentState.stats.agi = currentState.stats.agi.plus(passiveGain);
-  currentState.stats.end = currentState.stats.end.plus(passiveGain);
-  currentState.stats.wil = currentState.stats.wil.plus(passiveGain);
-};
 
-const update = (time: number) => {
-  if (!running) return;
-  const deltaTime = time - lastTime;
-  lastTime = time;
-  accumulator += deltaTime;
-  
-  let ticked = false;
-  while (accumulator >= MS_PER_TICK) {
-    tick();
-    accumulator -= MS_PER_TICK;
-    ticked = true;
+  const nextLockedFruits = [
+    ...state.lockedFruits,
+  ];
+
+  if (currentFruit) {
+    nextWorldFruits.add(currentFruit);
+
+    if (
+      endingId?.includes('capture')
+    ) {
+      nextLockedFruits.push(
+        currentFruit,
+      );
+      nextWorldFruits.delete(
+        currentFruit,
+      );
+    }
   }
-  
-  if (ticked && onSync) {
-    currentState.lastTick = Date.now();
-    onSync(currentState);
-  }
-  animationFrameId = requestAnimationFrame(update);
-};
 
-export const startEngine = () => {
-  if (running) return;
-  running = true;
-  lastTime = performance.now();
-  animationFrameId = requestAnimationFrame(update);
-  saveIntervalId = window.setInterval(() => {
-    saveGame(currentState, 'grand_line_v1');
-    saveGame(currentState, 'grand_line_backup');
-  }, 60000);
-};
+  const freshState =
+    createInitialState();
 
-export const stopEngine = () => {
-  running = false;
-  cancelAnimationFrame(animationFrameId);
-  clearInterval(saveIntervalId);
-};
+  Object.assign(
+    state,
+    freshState,
+  );
 
-export const dispatchCommand = (action: (state: GameState) => void) => {
-  if (currentState.isDead && action.name !== 'inheritWillAction') return;
-  action(currentState);
-  if (currentState.factions.infamy.gte(100000) && !currentState.doubleAgentUnlocked) {
-    currentState.doubleAgentUnlocked = true;
-  }
-  if (onSync) onSync(currentState);
+  state.era = oldEra + 1;
+  state.endings = oldEndings;
+  state.heirlooms =
+    Array.from(oldHeirlooms);
+  state.hakiMultiplier =
+    newHakiMultiplier;
+
+  state.worldFruits = Array.from(
+    nextWorldFruits,
+  );
+
+  state.lockedFruits = Array.from(
+    new Set(nextLockedFruits),
+  );
+
+  state.lastTick = Date.now();
+  state.lastEvent = `Era ${state.era} begins. The Will continues.`;
 };

@@ -1,20 +1,82 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import {
+  createRoot,
+} from 'react-dom/client';
 
 import App from './App.tsx';
 import './index.css';
 
-import { initEngine, startEngine } from './engine/loop';
-import { loadGame } from './engine/save';
-import { useGameStore } from './store/gameStore';
+import {
+  initEngine,
+  startEngine,
+  stopEngine,
+} from './engine/loop';
 
-const initialState = loadGame();
+import {
+  loadGame,
+  saveGame,
+} from './engine/save';
 
-initEngine(initialState, useGameStore.getState().sync);
+import {
+  useGameStore,
+} from './store/gameStore';
+
+const initialState =
+  loadGame();
+
+const sync =
+  useGameStore.getState().sync;
+
+initEngine(
+  initialState,
+  sync,
+);
+
 startEngine();
 
-createRoot(document.getElementById('root')!).render(
+const persistBeforeExit =
+  (): void => {
+    saveGame(
+      useGameStore.getState(),
+      'grand_line_v1',
+    );
+  };
+
+window.addEventListener(
+  'pagehide',
+  persistBeforeExit,
+);
+
+window.addEventListener(
+  'beforeunload',
+  persistBeforeExit,
+);
+
+window.addEventListener(
+  'pageshow',
+  () => {
+    useGameStore
+      .getState()
+      .sync(
+        useGameStore.getState(),
+      );
+  },
+);
+
+createRoot(
+  document.getElementById(
+    'root',
+  )!,
+).render(
   <StrictMode>
     <App />
   </StrictMode>,
+);
+
+window.addEventListener(
+  'pagehide',
+  () => {
+    stopEngine();
+  },
+  { once: true },
 );
