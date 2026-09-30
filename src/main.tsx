@@ -7,11 +7,12 @@ import { loadGame } from './engine/save';
 import { useGameStore } from './store/gameStore';
 
 const initialState = loadGame();
+
 initEngine(initialState, useGameStore.getState().sync);
 startEngine();
 
 createRoot(document.getElementById('root')!).render(
-  
-    
-  ,
+  <StrictMode>
+    <App />
+  </StrictMode>,
 );

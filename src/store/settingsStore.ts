@@ -9,23 +9,43 @@ interface SettingsStore {
   toggleMotion: () => void;
 }
 
-export const useSettingsStore = create()((set) => ({
+export const useSettingsStore = create<SettingsStore>()((set) => ({
   audioEnabled: true,
   hapticsEnabled: true,
   reduceMotion: false,
-  toggleAudio: () => set((state) => ({ audioEnabled: !state.audioEnabled })),
+
+  toggleAudio: () => {
+    set((state) => ({
+      audioEnabled: !state.audioEnabled,
+    }));
+  },
+
   toggleHaptics: () => {
     set((state) => {
-      const newVal = !state.hapticsEnabled;
-      if (newVal && navigator.vibrate) navigator.vibrate(50);
-      return { hapticsEnabled: newVal };
+      const newValue = !state.hapticsEnabled;
+
+      if (newValue && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+
+      return {
+        hapticsEnabled: newValue,
+      };
     });
   },
+
   toggleMotion: () => {
     set((state) => {
-      const newVal = !state.reduceMotion;
-      document.documentElement.style.setProperty('--transition-speed', newVal ? '0s' : '0.2s');
-      return { reduceMotion: newVal };
+      const newValue = !state.reduceMotion;
+
+      document.documentElement.style.setProperty(
+        '--transition-speed',
+        newValue ? '0s' : '0.2s',
+      );
+
+      return {
+        reduceMotion: newValue,
+      };
     });
   },
 }));

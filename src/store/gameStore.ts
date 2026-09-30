@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { GameState, createInitialState } from '../engine/save';
+import type { GameState } from '../engine/types';
+import { createInitialState } from '../engine/save';
 import { dispatchCommand } from '../engine/loop';
 
 interface GameStore extends GameState {
@@ -7,9 +8,11 @@ interface GameStore extends GameState {
   train: (stat: keyof GameState['stats']) => void;
 }
 
-export const useGameStore = create()((set) => ({
+export const useGameStore = create<GameStore>()((set) => ({
   ...createInitialState(),
+
   sync: (state) => set({ ...state }),
+
   train: (stat) => {
     dispatchCommand((state) => {
       if (state.stamina.gte(10)) {
@@ -17,5 +20,5 @@ export const useGameStore = create()((set) => ({
         state.stats[stat] = state.stats[stat].plus(1);
       }
     });
-  }
+  },
 }));
