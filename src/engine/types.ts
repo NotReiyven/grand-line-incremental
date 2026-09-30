@@ -47,11 +47,12 @@ export interface GameState {
   lastEnding?: string;
   unlockedCrew: string[];
   activeExpeditions: ActiveExpedition[];
-  inventory: Record<string, Decimal>;
+  inventory: Record;
   
   unlockedSkills: string[];
   haki: HakiState;
   devilFruit: string | null;
   worldFruits: string[];
   lockedFruits: string[];
+  highestBossDamage: Record;
 }
